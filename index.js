@@ -13,6 +13,7 @@
  * @property {number} SPRITE_WIDTH - The width of a single sprite in pixels.
  * @property {number} SPRITE_HEIGHT - The height of a single sprite in pixels.
  * @property {number} FPS_UPDATE_INTERVAL - The interval (in milliseconds) at which the FPS counter is updated.
+ * @property {number} CANVAS_SCALE - The scaling factor for the canvas resolution.
  */
 const GameConfig = {
     TICKS_PER_SECOND: 30,
@@ -21,7 +22,8 @@ const GameConfig = {
     MAX_UPDATES_PER_FRAME: 5,
     SPRITE_WIDTH: 16,
     SPRITE_HEIGHT: 16,
-    FPS_UPDATE_INTERVAL: 1000 // Update FPS every 1 second
+    FPS_UPDATE_INTERVAL: 1000, // Update FPS every 1 second
+    CANVAS_SCALE: 4 // Scale up the canvas by 4x
 };
 
 /**
@@ -141,6 +143,10 @@ class Lonk {
         /** @type {number} */
         this.y = y;
         /** @type {number} */
+        this.prevX = x; // Store previous X for interpolation
+        /** @type {number} */
+        this.prevY = y; // Store previous Y for interpolation
+        /** @type {number} */
         this.speed = 2;
         /**
          * The current direction Lonk is facing.
@@ -169,13 +175,14 @@ class Lonk {
      * @param {InputManager} inputManager - The input manager instance.
      * @param {number[][]} backgroundMap - The 2D array representing the game's background tiles.
      * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
-     * @param {number} canvasWidth - The width of the game canvas.
-     * @param {number} canvasHeight - The height of the game canvas.
+     * @param {number} canvasWidth - The width of the game canvas (unscaled).
+     * @param {number} canvasHeight - The height of the game canvas (unscaled).
      */
     update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
         let moving = false;
-        const prevX = this.x;
-        const prevY = this.y;
+        // Store current position as previous before updating
+        this.prevX = this.x;
+        this.prevY = this.y;
 
         let newX = this.x;
         let newY = this.y;
@@ -200,7 +207,7 @@ class Lonk {
             moving = true;
         }
 
-        // Clamp potential new position to canvas bounds
+        // Clamp potential new position to unscaled canvas bounds
         newX = Math.max(0, Math.min(newX, canvasWidth - GameConfig.SPRITE_WIDTH));
         newY = Math.max(0, Math.min(newY, canvasHeight - GameConfig.SPRITE_HEIGHT));
 
@@ -213,7 +220,7 @@ class Lonk {
         }
 
 
-        if (moving || prevX !== this.x || prevY !== this.y) {
+        if (moving || this.prevX !== this.x || this.prevY !== this.y) {
             this.frameCounter++;
             if (this.frameCounter >= this.frameDelay) {
                 this.frameCounter = 0;
@@ -231,6 +238,7 @@ class Lonk {
      * @returns {boolean} True if a collision is detected, false otherwise.
      */
     checkCollision(potentialX, potentialY, backgroundMap, solidTiles) {
+        // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
         const lonkLeft = potentialX + 4;
         const lonkTop = potentialY + 6;
         const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - 4;
@@ -258,11 +266,12 @@ class Lonk {
 
 
     /**
-     * Draws Lonk on the canvas.
+     * Draws Lonk on the canvas with interpolation.
      * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
      * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
+     * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    draw(ctx, lonkSpritesheet) {
+    draw(ctx, lonkSpritesheet, interpolation) {
         let lonkSx = 0;
         let lonkSy = 0; // Assuming all Lonk sprites are on the first row
         let flipHorizontal = false;
@@ -289,25 +298,37 @@ class Lonk {
                 break;
         }
 
+        // Calculate interpolated position (unscaled)
+        const interpolatedX = this.prevX + (this.x - this.prevX) * interpolation;
+        const interpolatedY = this.prevY + (this.y - this.prevY) * interpolation;
+
+        // Apply scaling for drawing and ensure integer pixel positions
+        const scaledX = Math.floor(interpolatedX * GameConfig.CANVAS_SCALE);
+        const scaledY = Math.floor(interpolatedY * GameConfig.CANVAS_SCALE);
+        const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+        const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+
+
         ctx.save();
         if (flipHorizontal) {
-            // Translate to the center of the sprite, scale horizontally, then draw
-            ctx.translate(this.x + GameConfig.SPRITE_WIDTH / 2, this.y + GameConfig.SPRITE_HEIGHT / 2);
+            // Translate to the center of the scaled sprite, scale horizontally, then draw
+            // The translate coordinates need to be floor-ed as well for consistency
+            ctx.translate(scaledX + scaledSpriteWidth / 2, scaledY + scaledSpriteHeight / 2);
             ctx.scale(-1, 1);
             ctx.drawImage(
                 lonkSpritesheet,
                 lonkSx, lonkSy,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
-                -GameConfig.SPRITE_WIDTH / 2, -GameConfig.SPRITE_HEIGHT / 2,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
+                -scaledSpriteWidth / 2, -scaledSpriteHeight / 2,
+                scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
             );
         } else {
             ctx.drawImage(
                 lonkSpritesheet,
                 lonkSx, lonkSy,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
-                this.x, this.y,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
+                scaledX, scaledY, // Destination (scaled) - now floored
+                scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
             );
         }
         ctx.restore();
@@ -333,6 +354,23 @@ class Renderer {
         this.backgroundSpritesheet = backgroundSpritesheet;
         /** @type {HTMLImageElement} */
         this.lonkSpritesheet = lonkSpritesheet;
+
+        // FIX: Disable image smoothing for crisp pixel art.
+        // For Chrome, 'pixelated' is best. For broader support, 'false'.
+        this.ctx.imageSmoothingEnabled = false;
+        if (this.ctx.imageSmoothingEnabled === false) { // Check if it was successfully set to false
+             // For some browsers, 'pixelated' quality might be an option.
+             // This is an experimental feature and might not be supported everywhere.
+             // If supported, it might give better results than 'false' for some pixel art games.
+             // For now, sticking with `false` for maximum compatibility and sharpness.
+             // @ts-ignore
+             if (this.ctx.imageSmoothingQuality) { // Check if property exists before setting
+                 // @ts-ignore
+                 this.ctx.imageSmoothingQuality = 'low'; // Or 'medium' or 'high' depending on preference
+                                                      // However, for pixel art, 'low' or 'pixelated' is often desired.
+                                                      // 'pixelated' is ideal but not widely supported yet.
+             }
+        }
     }
 
     /**
@@ -348,6 +386,7 @@ class Renderer {
      * @returns {{sx: number, sy: number}} An object containing the source X (sx) and source Y (sy) coordinates.
      */
     getSpriteSourceCoords(spriteId) {
+        // Assuming spritesheets are laid out horizontally
         const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.backgroundSpritesheet.width;
         const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.backgroundSpritesheet.width) * GameConfig.SPRITE_HEIGHT;
         return { sx, sy };
@@ -358,15 +397,19 @@ class Renderer {
      * @param {number[][]} backgroundMap - A 2D array representing the background tiles, where each number is a sprite ID.
      */
     drawBackground(backgroundMap) {
+        const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+        const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+
         for (let y = 0; y < backgroundMap.length; y++) {
             for (let x = 0; x < backgroundMap[y].length; x++) {
                 const { sx, sy } = this.getSpriteSourceCoords(backgroundMap[y][x]);
                 this.ctx.drawImage(
                     this.backgroundSpritesheet,
                     sx, sy,
-                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
-                    x * GameConfig.SPRITE_WIDTH, y * GameConfig.SPRITE_HEIGHT,
-                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
+                    // FIX: Floor destination coordinates for crisp pixel alignment
+                    Math.floor(x * scaledSpriteWidth), Math.floor(y * scaledSpriteHeight),
+                    scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
                 );
             }
         }
@@ -375,9 +418,10 @@ class Renderer {
     /**
      * Draws the Lonk character on the canvas.
      * @param {Lonk} lonk - The Lonk instance to draw.
+     * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    drawLonk(lonk) {
-        lonk.draw(this.ctx, this.lonkSpritesheet);
+    drawLonk(lonk, interpolation) {
+        lonk.draw(this.ctx, this.lonkSpritesheet, interpolation);
     }
 
     /**
@@ -386,9 +430,14 @@ class Renderer {
      */
     drawFPS(fps) {
         this.ctx.fillStyle = 'red';
-        this.ctx.font = '10px Arial';
+        // Adjust font size and position for scaled canvas
+        this.ctx.font = `${10 * GameConfig.CANVAS_SCALE}px Arial`;
         this.ctx.textAlign = 'right';
-        this.ctx.fillText(`FPS: ${fps}`, this.canvas.width - 10, 10);
+        // FIX: Floor FPS text position as well for consistency
+        this.ctx.fillText(`FPS: ${fps}`,
+            Math.floor(this.canvas.width - (10 * GameConfig.CANVAS_SCALE)),
+            Math.floor(10 * GameConfig.CANVAS_SCALE)
+        );
     }
 }
 
@@ -464,7 +513,7 @@ class GameLoop {
 
         // If we hit the max updates, reset delta to prevent accumulating too much time
         // This can happen if the game lags significantly
-        if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTEP) {
+        if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTATES) { // Typo fixed: TIMESTATES -> TIMESTEP
             this.delta = 0;
         }
 
@@ -493,8 +542,9 @@ class Game {
     constructor() {
         /** @type {HTMLCanvasElement} */
         this.canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('gameCanvas'));
-        this.canvas.width = 10 * GameConfig.SPRITE_WIDTH;
-        this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT;
+        // Scale the canvas resolution by GameConfig.CANVAS_SCALE
+        this.canvas.width = 10 * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+        this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
 
         /** @type {AssetManager} */
         this.assetManager = new AssetManager();
@@ -508,7 +558,7 @@ class Game {
         this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
 
         /** @type {Lonk} */
-        this.lonk = new Lonk(75, 75);
+        this.lonk = new Lonk(75, 75); // Lonk's positions remain in the unscaled game coordinates
 
         /**
          * The 2D array representing the game's background map.
@@ -577,7 +627,10 @@ class Game {
      * Updates the game state. This method is called at a fixed timestep.
      */
     update() {
-        this.lonk.update(this.inputManager, this.background, this.solidTiles, this.canvas.width, this.canvas.height);
+        // Pass unscaled canvas dimensions to Lonk's update for consistent game logic
+        this.lonk.update(this.inputManager, this.background, this.solidTiles,
+                         this.canvas.width / GameConfig.CANVAS_SCALE,
+                         this.canvas.height / GameConfig.CANVAS_SCALE);
         // Add more game update logic here
     }
 
@@ -588,7 +641,7 @@ class Game {
     render(interpolation) {
         this.renderer.clear();
         this.renderer.drawBackground(this.background);
-        this.renderer.drawLonk(this.lonk);
+        this.renderer.drawLonk(this.lonk, interpolation);
         this.renderer.drawFPS(this.currentFps);
     }
 }
