@@ -1,48 +1,469 @@
-const TICKS_PER_SECOND = 30; // Simulation speed.
-const TIMESTEP = 1000 / TICKS_PER_SECOND;
-const MAX_DELTA_TIME = 250;
-const MAX_UPDATES_PER_FRAME = 5;
+/**
+ * @file This file contains the core components for a simple 2D game,
+ * including configuration, asset management, input handling, game entities,
+ * rendering, and the main game loop.
+ */
 
-class Game {
+/**
+ * @typedef {Object} GameConfig
+ * @property {number} TICKS_PER_SECOND - The target number of game logic updates per second.
+ * @property {number} TIMESTEP - The fixed time step (in milliseconds) for game logic updates.
+ * @property {number} MAX_DELTA_TIME - The maximum allowed delta time (in milliseconds) to prevent "spiral of death" on performance dips.
+ * @property {number} MAX_UPDATES_PER_FRAME - The maximum number of game logic updates that can occur in a single frame.
+ * @property {number} SPRITE_WIDTH - The width of a single sprite in pixels.
+ * @property {number} SPRITE_HEIGHT - The height of a single sprite in pixels.
+ * @property {number} FPS_UPDATE_INTERVAL - The interval (in milliseconds) at which the FPS counter is updated.
+ */
+const GameConfig = {
+    TICKS_PER_SECOND: 30,
+    TIMESTEP: 1000 / 30,
+    MAX_DELTA_TIME: 250,
+    MAX_UPDATES_PER_FRAME: 5,
+    SPRITE_WIDTH: 16,
+    SPRITE_HEIGHT: 16,
+    FPS_UPDATE_INTERVAL: 1000 // Update FPS every 1 second
+};
+
+/**
+ * Manages the loading and retrieval of game assets like images.
+ */
+class AssetManager {
+    /**
+     * Creates an instance of AssetManager.
+     */
     constructor() {
         /**
-         * The game canvas.
-         * @type {HTMLCanvasElement}
+         * A dictionary to store loaded assets, keyed by their names.
+         * @type {Object.<string, HTMLImageElement>}
          */
-        this.canvas = document.getElementById('gameCanvas');
+        this.assets = {};
         /**
-         * The canvas 2D rendering context.
-         * @type {CanvasRenderingContext2D}
+         * An array to hold promises for asset loading.
+         * @type {Promise<void>[]}
          */
-        this.ctx = this.canvas.getContext('2d');
+        this.loadPromises = [];
+    }
 
-        /**
-         * The background spritesheet image.
-         * @type {HTMLImageElement}
-         */
-        this.backgroundSpritesheet = document.getElementById('backgroundSpritesheet');
+    /**
+     * Loads an image asset.
+     * @param {string} name - The name to associate with the loaded image.
+     * @param {string} path - The URL path to the image file.
+     * @returns {HTMLImageElement} The Image object being loaded.
+     */
+    loadImage(name, path) {
+        const img = new Image();
+        img.src = path;
+        const promise = new Promise((resolve, reject) => {
+            img.onload = () => {
+                this.assets[name] = img;
+                resolve();
+            };
+            img.onerror = () => {
+                console.error(`Failed to load image: ${path}`);
+                reject(new Error(`Failed to load image: ${path}`));
+            };
+        });
+        this.loadPromises.push(promise);
+        return img;
+    }
 
-        /**
-         * The lonk spritesheet image.
-         * @type {HTMLImageElement}
-         */
-        this.lonkSpritesheet = document.getElementById('lonkSpritesheet');
+    /**
+     * Retrieves a loaded asset by its name.
+     * @param {string} name - The name of the asset to retrieve.
+     * @returns {HTMLImageElement | undefined} The loaded image asset, or undefined if not found.
+     */
+    getAsset(name) {
+        return this.assets[name];
+    }
 
+    /**
+     * Waits for all loaded assets to complete loading.
+     * @returns {Promise<void>} A promise that resolves when all assets are loaded.
+     */
+    async loadAll() {
+        await Promise.all(this.loadPromises);
+        console.log("All assets loaded!");
+    }
+}
+
+/**
+ * Manages keyboard input for the game.
+ */
+class InputManager {
+    /**
+     * Creates an instance of InputManager.
+     */
+    constructor() {
         /**
-         * Milliseconds since the last update.
-         * @type {DOMHighResTimeStamp}
+         * A dictionary to track the state of keys (true if pressed, false if released).
+         * Keys are stored in lowercase.
+         * @type {Object.<string, boolean>}
          */
-        this.delta = 0;
+        this.keys = {};
+        this.addEventListeners();
+    }
+
+    /**
+     * Adds event listeners for keyboard keydown and keyup events.
+     * @private
+     */
+    addEventListeners() {
+        document.addEventListener('keydown', (/** @type {KeyboardEvent} */ e) => {
+            this.keys[e.key.toLowerCase()] = true;
+        });
+        document.addEventListener('keyup', (/** @type {KeyboardEvent} */ e) => {
+            this.keys[e.key.toLowerCase()] = false;
+        });
+    }
+
+    /**
+     * Checks if a specific key is currently pressed down.
+     * @param {string} key - The key to check (e.g., 'w', 'a', 'ArrowUp'). Case-insensitive.
+     * @returns {boolean} True if the key is pressed, false otherwise.
+     */
+    isKeyDown(key) {
+        return this.keys[key.toLowerCase()] || false;
+    }
+}
+
+/**
+ * Represents the main player character, Lonk.
+ */
+class Lonk {
+    /**
+     * Creates an instance of Lonk.
+     * @param {number} x - The initial X coordinate of Lonk.
+     * @param {number} y - The initial Y coordinate of Lonk.
+     */
+    constructor(x, y) {
+        /** @type {number} */
+        this.x = x;
+        /** @type {number} */
+        this.y = y;
+        /** @type {number} */
+        this.speed = 2;
         /**
-         * Timestamp for the last frame.
-         * @type {DOMHighResTimeStamp}
+         * The current direction Lonk is facing.
+         * @type {'up' | 'down' | 'left' | 'right'}
          */
+        this.direction = 'down';
+        /**
+         * The current animation frame for Lonk.
+         * @type {0 | 1}
+         */
+        this.frame = 0;
+        /**
+         * The delay (in game updates) between animation frames.
+         * @type {number}
+         */
+        this.frameDelay = 5;
+        /**
+         * Counter for frame delay.
+         * @type {number}
+         */
+        this.frameCounter = 0;
+    }
+
+    /**
+     * Updates Lonk's position and animation based on input.
+     * @param {InputManager} inputManager - The input manager instance.
+     * @param {number} canvasWidth - The width of the game canvas.
+     * @param {number} canvasHeight - The height of the game canvas.
+     */
+    update(inputManager, canvasWidth, canvasHeight) {
+        let moving = false;
+        const prevX = this.x;
+        const prevY = this.y;
+
+        if (inputManager.isKeyDown('w')) {
+            this.y -= this.speed;
+            this.direction = 'up';
+            moving = true;
+        } else if (inputManager.isKeyDown('s')) {
+            this.y += this.speed;
+            this.direction = 'down';
+            moving = true;
+        }
+
+        if (inputManager.isKeyDown('a')) {
+            this.x -= this.speed;
+            this.direction = 'left';
+            moving = true;
+        } else if (inputManager.isKeyDown('d')) {
+            this.x += this.speed;
+            this.direction = 'right';
+            moving = true;
+        }
+
+        if (moving || prevX !== this.x || prevY !== this.y) {
+            this.frameCounter++;
+            if (this.frameCounter >= this.frameDelay) {
+                this.frameCounter = 0;
+                this.frame = (this.frame + 1) % 2;
+            }
+        }
+
+        // Keep Lonk within canvas bounds
+        this.x = Math.max(0, Math.min(this.x, canvasWidth - GameConfig.SPRITE_WIDTH));
+        this.y = Math.max(0, Math.min(this.y, canvasHeight - GameConfig.SPRITE_HEIGHT));
+    }
+
+    /**
+     * Draws Lonk on the canvas.
+     * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+     * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
+     */
+    draw(ctx, lonkSpritesheet) {
+        let lonkSx = 0;
+        let lonkSy = 0; // Assuming all Lonk sprites are on the first row
+        let flipHorizontal = false;
+
+        switch (this.direction) {
+            case 'down':
+                lonkSx = 0 * GameConfig.SPRITE_WIDTH;
+                if (this.frame === 1) {
+                    flipHorizontal = true; // For down-facing, frame 1 is a mirrored version
+                }
+                break;
+            case 'up':
+                lonkSx = 1 * GameConfig.SPRITE_WIDTH;
+                if (this.frame === 1) {
+                    flipHorizontal = true; // For up-facing, frame 1 is a mirrored version
+                }
+                break;
+            case 'left':
+                lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for left
+                break;
+            case 'right':
+                lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for right, but flipped
+                flipHorizontal = true;
+                break;
+        }
+
+        ctx.save();
+        if (flipHorizontal) {
+            // Translate to the center of the sprite, scale horizontally, then draw
+            ctx.translate(this.x + GameConfig.SPRITE_WIDTH / 2, this.y + GameConfig.SPRITE_HEIGHT / 2);
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+                lonkSpritesheet,
+                lonkSx, lonkSy,
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
+                -GameConfig.SPRITE_WIDTH / 2, -GameConfig.SPRITE_HEIGHT / 2,
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+            );
+        } else {
+            ctx.drawImage(
+                lonkSpritesheet,
+                lonkSx, lonkSy,
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
+                this.x, this.y,
+                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+            );
+        }
+        ctx.restore();
+    }
+}
+
+/**
+ * Handles all rendering operations for the game.
+ */
+class Renderer {
+    /**
+     * Creates an instance of Renderer.
+     * @param {HTMLCanvasElement} canvas - The HTML canvas element to draw on.
+     * @param {HTMLImageElement} backgroundSpritesheet - The spritesheet for background tiles.
+     * @param {HTMLImageElement} lonkSpritesheet - The spritesheet for Lonk.
+     */
+    constructor(canvas, backgroundSpritesheet, lonkSpritesheet) {
+        /** @type {HTMLCanvasElement} */
+        this.canvas = canvas;
+        /** @type {CanvasRenderingContext2D} */
+        this.ctx = canvas.getContext('2d');
+        /** @type {HTMLImageElement} */
+        this.backgroundSpritesheet = backgroundSpritesheet;
+        /** @type {HTMLImageElement} */
+        this.lonkSpritesheet = lonkSpritesheet;
+    }
+
+    /**
+     * Clears the entire canvas.
+     */
+    clear() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    }
+
+    /**
+     * Calculates the source X and Y coordinates on the spritesheet for a given sprite ID.
+     * @param {number} spriteId - The ID of the sprite.
+     * @returns {{sx: number, sy: number}} An object containing the source X (sx) and source Y (sy) coordinates.
+     */
+    getSpriteSourceCoords(spriteId) {
+        const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.backgroundSpritesheet.width;
+        const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.backgroundSpritesheet.width) * GameConfig.SPRITE_HEIGHT;
+        return { sx, sy };
+    }
+
+    /**
+     * Draws the background tiles based on a 2D map array.
+     * @param {number[][]} backgroundMap - A 2D array representing the background tiles, where each number is a sprite ID.
+     */
+    drawBackground(backgroundMap) {
+        for (let y = 0; y < backgroundMap.length; y++) {
+            for (let x = 0; x < backgroundMap[y].length; x++) {
+                const { sx, sy } = this.getSpriteSourceCoords(backgroundMap[y][x]);
+                this.ctx.drawImage(
+                    this.backgroundSpritesheet,
+                    sx, sy,
+                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT,
+                    x * GameConfig.SPRITE_WIDTH, y * GameConfig.SPRITE_HEIGHT,
+                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT
+                );
+            }
+        }
+    }
+
+    /**
+     * Draws the Lonk character on the canvas.
+     * @param {Lonk} lonk - The Lonk instance to draw.
+     */
+    drawLonk(lonk) {
+        lonk.draw(this.ctx, this.lonkSpritesheet);
+    }
+
+    /**
+     * Draws the current Frames Per Second (FPS) on the canvas.
+     * @param {number} fps - The current FPS value.
+     */
+    drawFPS(fps) {
+        this.ctx.fillStyle = 'red';
+        this.ctx.font = '10px Arial';
+        this.ctx.textAlign = 'right';
+        this.ctx.fillText(`FPS: ${fps}`, this.canvas.width - 10, 10);
+    }
+}
+
+/**
+ * Manages the main game loop, handling updates and rendering at a fixed timestep.
+ */
+class GameLoop {
+    /**
+     * Creates an instance of GameLoop.
+     * @param {function(): void} updateCallback - The function to call for game logic updates.
+     * @param {function(number): void} renderCallback - The function to call for rendering.
+     * @param {function(number): void} fpsCallback - The function to call when FPS updates.
+     */
+    constructor(updateCallback, renderCallback, fpsCallback) {
+        /** @type {function(): void} */
+        this.updateCallback = updateCallback;
+        /** @type {function(number): void} */
+        this.renderCallback = renderCallback;
+        /** @type {function(number): void} */
+        this.fpsCallback = fpsCallback;
+
+        /** @type {number | null} */
+        this.animationFrameId = null;
+        /** @type {DOMHighResTimeStamp} */
         this.lastTime = 0;
+        /** @type {number} */
+        this.delta = 0;
+
+        /** @type {number} */
+        this.frameCount = 0;
+        /** @type {DOMHighResTimeStamp} */
+        this.lastFpsUpdateTime = 0;
+        /** @type {number} */
+        this.currentFps = 0;
+    }
+
+    /**
+     * Starts the game loop.
+     */
+    start() {
+        this.lastTime = performance.now();
+        this.lastFpsUpdateTime = performance.now();
+        this.delta = 0;
+        this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    }
+
+    /**
+     * Stops the game loop.
+     */
+    stop() {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+
+    /**
+     * The core game loop function.
+     * @param {DOMHighResTimeStamp} now - The current time provided by requestAnimationFrame.
+     * @private
+     */
+    loop(now) {
+        const elapsed = now - this.lastTime;
+        this.lastTime = now;
+        this.delta += Math.min(elapsed, GameConfig.MAX_DELTA_TIME);
+
+        let updatesCount = 0;
+        while (this.delta >= GameConfig.TIMESTEP && updatesCount < GameConfig.MAX_UPDATES_PER_FRAME) {
+            this.updateCallback();
+            this.delta -= GameConfig.TIMESTEP;
+            updatesCount++;
+        }
+
+        // If we hit the max updates, reset delta to prevent accumulating too much time
+        // This can happen if the game lags significantly
+        if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTEP) {
+            this.delta = 0;
+        }
+
+        const interpolation = this.delta / GameConfig.TIMESTEP;
+        this.renderCallback(interpolation);
+
+        this.frameCount++;
+        if (now - this.lastFpsUpdateTime >= GameConfig.FPS_UPDATE_INTERVAL) {
+            this.currentFps = this.frameCount;
+            this.frameCount = 0;
+            this.lastFpsUpdateTime = now;
+            this.fpsCallback(this.currentFps);
+        }
+
+        this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
+    }
+}
+
+/**
+ * The main Game class, orchestrating all game components.
+ */
+class Game {
+    /**
+     * Creates an instance of Game.
+     */
+    constructor() {
+        /** @type {HTMLCanvasElement} */
+        this.canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('gameCanvas'));
+        this.canvas.width = 10 * GameConfig.SPRITE_WIDTH;
+        this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT;
+
+        /** @type {AssetManager} */
+        this.assetManager = new AssetManager();
+        /** @type {InputManager} */
+        this.inputManager = new InputManager();
+
+        // Load game assets
+        /** @type {HTMLImageElement} */
+        this.backgroundSpritesheet = this.assetManager.loadImage('background', 'tilesets/background.png');
+        /** @type {HTMLImageElement} */
+        this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
+
+        /** @type {Lonk} */
+        this.lonk = new Lonk(50, 50);
 
         /**
-         * Hard-coded background tileset with the ID of the sprite to render.
-         * A spriteId of 0 would be the first sprite (top-left) in the spritesheet.
-         * A spriteId of 1 would be the second sprite, and so on.
+         * The 2D array representing the game's background map.
+         * Each number corresponds to a sprite ID in the background spritesheet.
          * @type {number[][]}
          */
         this.background = [
@@ -58,146 +479,66 @@ class Game {
         ];
 
         /**
-         * Lonk's attributes.
-         * @type {{x: number, y: number}}
-         */
-        this.lonk = { x: 50, y: 50 };
-
-        /**
-         * Timestamp for the last frame.
-         * @type {number}
-         */
-        this.frameCount = 0;
-        /**
-         * Timestamp for the last frame.
-         * @type {DOMHighResTimeStamp}
-         */
-        this.lastFpsUpdateTime = 0;
-        /**
-         * Timestamp for the last frame.
+         * The current calculated Frames Per Second.
          * @type {number}
          */
         this.currentFps = 0;
-
-        // Sprite dimensions
-        this.SPRITE_WIDTH = 16;
-        this.SPRITE_HEIGHT = 16;
+        /** @type {Renderer | null} */
+        this.renderer = null;
+        /** @type {GameLoop | null} */
+        this.gameLoop = null;
     }
 
-    // Helper to get source x, y from a spriteId
-    getSpriteSourceCoords(spriteId) {
-        const sx = (spriteId * this.SPRITE_WIDTH) % this.backgroundSpritesheet.width;
-        const sy = Math.floor((spriteId * this.SPRITE_WIDTH) / this.backgroundSpritesheet.width) * this.SPRITE_HEIGHT;
-
-        return { sx, sy };
-    }
-
-    update() {
-        // Your game update logic here
-    }
-
-    render(interpolation) {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Draw the background.
-        for (let y = 0; y < this.background.length; y++) {
-            for (let x = 0; x < this.background[y].length; x++) {
-                const { sx, sy } = this.getSpriteSourceCoords(this.background[y][x]);
-
-                // Draw the sprite
-                this.ctx.drawImage(
-                    this.backgroundSpritesheet, // Source image
-                    sx, sy,             // Source x, y (top-left corner of the sprite on the spritesheet)
-                    this.SPRITE_WIDTH,  // Source width
-                    this.SPRITE_HEIGHT, // Source height
-                    x * this.SPRITE_WIDTH, // Destination x on canvas (scale to 16x16)
-                    y * this.SPRITE_HEIGHT, // Destination y on canvas (scale to 16x16)
-                    this.SPRITE_WIDTH,  // Destination width on canvas
-                    this.SPRITE_HEIGHT  // Destination height on canvas
-                );
-            }
-        }
-
-        this.ctx.drawImage(
-            this.lonkSpritesheet,
-            0, 0,
-            this.SPRITE_WIDTH,  // Source width
-            this.SPRITE_HEIGHT, // Source height
-            this.lonk.x, // Destination x on canvas (scale to 16x16)
-            this.lonk.y, // Destination y on canvas (scale to 16x16)
-            this.SPRITE_WIDTH,  // Destination width on canvas
-            this.SPRITE_HEIGHT  // Destination height on canvas
-        );
-
-        // Display FPS in the top right corner
-        this.ctx.fillStyle = 'red';
-        this.ctx.font = '10px Arial';
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`FPS: ${this.currentFps}`, this.canvas.width - 10, 10);
-    }
-
-    start() {
-        this.lastTime = performance.now();
-        this.lastFpsUpdateTime = performance.now(); // Initialize FPS update time
-        this.delta = 0;
-
-        // Only start the game loop once the spritesheet is loaded
-        if (this.backgroundSpritesheet.complete && this.backgroundSpritesheet.naturalWidth !== 0) {
-            this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
-        } else {
-            // If the image is not yet loaded, wait for it
-            this.backgroundSpritesheet.onload = () => {
-                console.log("Spritesheet loaded!");
-                this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
-            };
-            this.backgroundSpritesheet.onerror = () => {
-                console.error("Failed to load spritesheet!");
-                // Handle error, e.g., display an error message
-            };
+    /**
+     * Initializes and starts the game. This includes loading assets and
+     * setting up the renderer and game loop.
+     * @returns {Promise<void>} A promise that resolves when the game has started.
+     */
+    async start() {
+        try {
+            await this.assetManager.loadAll();
+            this.renderer = new Renderer(this.canvas, this.assetManager.getAsset('background'), this.assetManager.getAsset('lonk'));
+            this.gameLoop = new GameLoop(
+                this.update.bind(this),
+                this.render.bind(this),
+                (/** @type {number} */ fps) => { this.currentFps = fps; }
+            );
+            this.gameLoop.start();
+        } catch (error) {
+            console.error("Game failed to start due to asset loading errors:", error);
         }
     }
 
+    /**
+     * Stops the game loop.
+     */
     stop() {
-        if (this.animationFrameId) {
-            cancelAnimationFrame(this.animationFrameId);
-            this.animationFrameId = null;
+        if (this.gameLoop) {
+            this.gameLoop.stop();
         }
     }
 
-    gameLoop(now) {
-        const elapsed = now - this.lastTime;
-        this.lastTime = now;
-        this.delta += Math.min(elapsed, MAX_DELTA_TIME); // Cap max delta when tab is inactive.
+    /**
+     * Updates the game state. This method is called at a fixed timestep.
+     */
+    update() {
+        this.lonk.update(this.inputManager, this.canvas.width, this.canvas.height);
+        // Add more game update logic here
+    }
 
-        let updatesCount = 0;
-
-        while (this.delta >= TIMESTEP && updatesCount < MAX_UPDATES_PER_FRAME) {
-            this.update();
-            this.delta -= TIMESTEP;
-            updatesCount++;
-        }
-
-        // Reset delta if we're running behind.
-        if (updatesCount === MAX_UPDATES_PER_FRAME && this.delta >= TIMESTEP) {
-            this.delta = 0;
-        }
-
-        // Interpolate for smooth movements.
-        const interpolation = this.delta / TIMESTEP;
-        this.render(interpolation);
-
-        // FPS calculation (extract into a component)
-        this.frameCount++;
-        if (now - this.lastFpsUpdateTime >= 1000) { // Update once per second
-            this.currentFps = this.frameCount;
-            this.frameCount = 0;
-            this.lastFpsUpdateTime = now;
-        }
-
-        this.animationFrameId = requestAnimationFrame(this.gameLoop.bind(this));
+    /**
+     * Renders the game elements to the canvas.
+     * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering between fixed updates.
+     */
+    render(interpolation) {
+        this.renderer.clear();
+        this.renderer.drawBackground(this.background);
+        this.renderer.drawLonk(this.lonk);
+        this.renderer.drawFPS(this.currentFps);
     }
 }
 
+// Entry point: Initialize and start the game when the DOM is fully loaded.
 document.addEventListener('DOMContentLoaded', () => {
     const myGame = new Game();
     myGame.start();
