@@ -23,6 +23,12 @@ class Game {
         this.backgroundSpritesheet = document.getElementById('backgroundSpritesheet');
 
         /**
+         * The lonk spritesheet image.
+         * @type {HTMLImageElement}
+         */
+        this.lonkSpritesheet = document.getElementById('lonkSpritesheet');
+
+        /**
          * Milliseconds since the last update.
          * @type {DOMHighResTimeStamp}
          */
@@ -50,6 +56,12 @@ class Game {
             [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
             [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
         ];
+
+        /**
+         * Lonk's attributes.
+         * @type {{x: number, y: number}}
+         */
+        this.lonk = { x: 50, y: 50 };
 
         /**
          * Timestamp for the last frame.
@@ -105,6 +117,17 @@ class Game {
                 );
             }
         }
+
+        this.ctx.drawImage(
+            this.lonkSpritesheet,
+            0, 0,
+            this.SPRITE_WIDTH,  // Source width
+            this.SPRITE_HEIGHT, // Source height
+            this.lonk.x, // Destination x on canvas (scale to 16x16)
+            this.lonk.y, // Destination y on canvas (scale to 16x16)
+            this.SPRITE_WIDTH,  // Destination width on canvas
+            this.SPRITE_HEIGHT  // Destination height on canvas
+        );
 
         // Display FPS in the top right corner
         this.ctx.fillStyle = 'red';
