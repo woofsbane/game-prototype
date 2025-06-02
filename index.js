@@ -156,7 +156,7 @@ class Lonk {
          * The delay (in game updates) between animation frames.
          * @type {number}
          */
-        this.frameDelay = 5;
+        this.frameDelay = 3;
         /**
          * Counter for frame delay.
          * @type {number}
