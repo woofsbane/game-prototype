@@ -167,33 +167,51 @@ class Lonk {
     /**
      * Updates Lonk's position and animation based on input.
      * @param {InputManager} inputManager - The input manager instance.
+     * @param {number[][]} backgroundMap - The 2D array representing the game's background tiles.
+     * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
      * @param {number} canvasWidth - The width of the game canvas.
      * @param {number} canvasHeight - The height of the game canvas.
      */
-    update(inputManager, canvasWidth, canvasHeight) {
+    update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
         let moving = false;
         const prevX = this.x;
         const prevY = this.y;
 
+        let newX = this.x;
+        let newY = this.y;
+
         if (inputManager.isKeyDown('w')) {
-            this.y -= this.speed;
+            newY -= this.speed;
             this.direction = 'up';
             moving = true;
         } else if (inputManager.isKeyDown('s')) {
-            this.y += this.speed;
+            newY += this.speed;
             this.direction = 'down';
             moving = true;
         }
 
         if (inputManager.isKeyDown('a')) {
-            this.x -= this.speed;
+            newX -= this.speed;
             this.direction = 'left';
             moving = true;
         } else if (inputManager.isKeyDown('d')) {
-            this.x += this.speed;
+            newX += this.speed;
             this.direction = 'right';
             moving = true;
         }
+
+        // Clamp potential new position to canvas bounds
+        newX = Math.max(0, Math.min(newX, canvasWidth - GameConfig.SPRITE_WIDTH));
+        newY = Math.max(0, Math.min(newY, canvasHeight - GameConfig.SPRITE_HEIGHT));
+
+        // Collision detection
+        if (!this.checkCollision(newX, this.y, backgroundMap, solidTiles)) {
+            this.x = newX;
+        }
+        if (!this.checkCollision(this.x, newY, backgroundMap, solidTiles)) {
+            this.y = newY;
+        }
+
 
         if (moving || prevX !== this.x || prevY !== this.y) {
             this.frameCounter++;
@@ -202,11 +220,42 @@ class Lonk {
                 this.frame = (this.frame + 1) % 2;
             }
         }
-
-        // Keep Lonk within canvas bounds
-        this.x = Math.max(0, Math.min(this.x, canvasWidth - GameConfig.SPRITE_WIDTH));
-        this.y = Math.max(0, Math.min(this.y, canvasHeight - GameConfig.SPRITE_HEIGHT));
     }
+
+    /**
+     * Checks for collision with solid background tiles at a given potential position.
+     * @param {number} potentialX - The potential X coordinate of Lonk.
+     * @param {number} potentialY - The potential Y coordinate of Lonk.
+     * @param {number[][]} backgroundMap - The 2D array representing the game's background tiles.
+     * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
+     * @returns {boolean} True if a collision is detected, false otherwise.
+     */
+    checkCollision(potentialX, potentialY, backgroundMap, solidTiles) {
+        const lonkLeft = potentialX + 4;
+        const lonkTop = potentialY + 6;
+        const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - 4;
+        const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - 2;
+
+        // Determine the range of tiles Lonk is currently overlapping or about to overlap
+        const startTileX = Math.floor(lonkLeft / GameConfig.SPRITE_WIDTH);
+        const endTileX = Math.floor(lonkRight / GameConfig.SPRITE_WIDTH);
+        const startTileY = Math.floor(lonkTop / GameConfig.SPRITE_HEIGHT);
+        const endTileY = Math.floor(lonkBottom / GameConfig.SPRITE_HEIGHT);
+
+        for (let row = startTileY; row <= endTileY; row++) {
+            for (let col = startTileX; col <= endTileX; col++) {
+                // Ensure tile coordinates are within the map boundaries
+                if (row >= 0 && row < backgroundMap.length && col >= 0 && col < backgroundMap[row].length) {
+                    const tileId = backgroundMap[row][col];
+                    if (solidTiles.includes(tileId)) {
+                        return true; // Collision detected with a solid tile
+                    }
+                }
+            }
+        }
+        return false; // No collision
+    }
+
 
     /**
      * Draws Lonk on the canvas.
@@ -459,7 +508,7 @@ class Game {
         this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
 
         /** @type {Lonk} */
-        this.lonk = new Lonk(50, 50);
+        this.lonk = new Lonk(75, 75);
 
         /**
          * The 2D array representing the game's background map.
@@ -477,6 +526,12 @@ class Game {
             [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
             [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
         ];
+
+        /**
+         * An array of sprite IDs that are considered solid for collision detection.
+         * @type {number[]}
+         */
+        this.solidTiles = [8, 11, 12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 159];
 
         /**
          * The current calculated Frames Per Second.
@@ -522,7 +577,7 @@ class Game {
      * Updates the game state. This method is called at a fixed timestep.
      */
     update() {
-        this.lonk.update(this.inputManager, this.canvas.width, this.canvas.height);
+        this.lonk.update(this.inputManager, this.background, this.solidTiles, this.canvas.width, this.canvas.height);
         // Add more game update logic here
     }
 
