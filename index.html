@@ -17,14 +17,18 @@
             image-rendering: pixelated;
 
 
-            border: 1px solid lightgray;
             height: 50vh;
-            aspect-ratio: 176 / 144;
+            aspect-ratio: 160 / 144;
+        }
+
+        img {
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <canvas id="gameCanvas" width="176" height="144"></canvas>
+    <canvas id="gameCanvas" width="160" height="144"></canvas>
+    <img id="backgroundSpritesheet" src="tilesets/background.png" />
     <script src="index.js"></script>
 </body>
