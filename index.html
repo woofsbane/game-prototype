@@ -185,49 +185,63 @@
              * @param {number} canvasWidth - The width of the game canvas (unscaled).
              * @param {number} canvasHeight - The height of the game canvas (unscaled).
              */
-            update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
-                let moving = false;
+update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 // Store current position as previous before updating
                 this.prevX = this.x;
                 this.prevY = this.y;
 
-                let newX = this.x;
-                let newY = this.y;
+                let moveX = 0;
+                let moveY = 0;
 
                 if (inputManager.isKeyDown('w')) {
-                    newY -= this.speed;
-                    this.direction = 'up';
-                    moving = true;
-                } else if (inputManager.isKeyDown('s')) {
-                    newY += this.speed;
-                    this.direction = 'down';
-                    moving = true;
+                    moveY -= this.speed;
+                }
+                if (inputManager.isKeyDown('s')) {
+                    moveY += this.speed;
+                }
+                if (inputManager.isKeyDown('a')) {
+                    moveX -= this.speed;
+                }
+                if (inputManager.isKeyDown('d')) {
+                    moveX += this.speed;
                 }
 
+                // Set direction based on priority: Left/Right takes precedence over Up/Down
                 if (inputManager.isKeyDown('a')) {
-                    newX -= this.speed;
                     this.direction = 'left';
-                    moving = true;
                 } else if (inputManager.isKeyDown('d')) {
-                    newX += this.speed;
                     this.direction = 'right';
-                    moving = true;
+                } else if (inputManager.isKeyDown('w')) {
+                    this.direction = 'up';
+                } else if (inputManager.isKeyDown('s')) {
+                    this.direction = 'down';
+                }
+
+
+                // Normalize diagonal movement
+                if (moveX !== 0 && moveY !== 0) {
+                    const diagonalSpeed = Math.sqrt(2);
+                    moveX /= diagonalSpeed;
+                    moveY /= diagonalSpeed;
                 }
 
                 // Clamp potential new position to unscaled canvas bounds
-                newX = Math.max(0, Math.min(newX, canvasWidth - GameConfig.SPRITE_WIDTH));
-                newY = Math.max(0, Math.min(newY, canvasHeight - GameConfig.SPRITE_HEIGHT));
+                const newX = Math.max(0, Math.min(this.x + moveX, canvasWidth - GameConfig.SPRITE_WIDTH));
+                const newY = Math.max(0, Math.min(this.y + moveY, canvasHeight - GameConfig.SPRITE_HEIGHT));
 
                 // Collision detection
-                if (!this.checkCollision(newX, this.y, backgroundMap, solidTiles)) {
+                const noCollisionX = !this.checkCollision(newX, this.y, backgroundMap, solidTiles);
+                if (noCollisionX) {
                     this.x = newX;
                 }
-                if (!this.checkCollision(this.x, newY, backgroundMap, solidTiles)) {
+
+                const noCollisionY = !this.checkCollision(this.x, newY, backgroundMap, solidTiles);
+                if (noCollisionY) {
                     this.y = newY;
                 }
 
-
-                if (moving || this.prevX !== this.x || this.prevY !== this.y) {
+                // Only animate if Lonk actually moved
+                if ((moveX !== 0 || moveY !== 0) && noCollisionX && noCollisionY) {
                     this.frameCounter++;
                     if (this.frameCounter >= this.frameDelay) {
                         this.frameCounter = 0;
