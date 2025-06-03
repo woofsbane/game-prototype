@@ -107,6 +107,16 @@
                  * @type {Object.<string, boolean>}
                  */
                 this.keys = {};
+                /**
+                 * A mapping from abstract actions to an array of keys that trigger them.
+                 * @type {Object.<string, string>}
+                 */
+                this.actionMap = {
+                    'up': 'w',
+                    'down': 's',
+                    'left': 'a',
+                    'right': 'd',
+                };
                 this.addEventListeners();
             }
 
@@ -124,12 +134,13 @@
             }
 
             /**
-             * Checks if a specific key is currently pressed down.
-             * @param {string} key - The key to check (e.g., 'w', 'a', 'ArrowUp'). Case-insensitive.
-             * @returns {boolean} True if the key is pressed, false otherwise.
+             * Checks if an abstract action (e.g., 'up', 'down') is currently active.
+             * @param {string} action - The action to check (e.g., 'up', 'left'). Case-insensitive.
+             * @returns {boolean} True if any key mapped to the action is pressed, false otherwise.
              */
-            isKeyDown(key) {
-                return this.keys[key.toLowerCase()] || false;
+            isActionActive(action) {
+                const keyForAction = this.actionMap[action.toLowerCase()];
+                return this.keys[keyForAction];
             }
         }
 
@@ -183,7 +194,7 @@
              * @param {number} canvasWidth - The width of the game canvas (unscaled).
              * @param {number} canvasHeight - The height of the game canvas (unscaled).
              */
-update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
+            update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 // Store current position as previous before updating
                 this.prevX = this.x;
                 this.prevY = this.y;
@@ -191,27 +202,28 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 let moveX = 0;
                 let moveY = 0;
 
-                if (inputManager.isKeyDown('w')) {
+                // Use the abstract actions for movement
+                if (inputManager.isActionActive('up')) {
                     moveY -= this.speed;
                 }
-                if (inputManager.isKeyDown('s')) {
+                if (inputManager.isActionActive('down')) {
                     moveY += this.speed;
                 }
-                if (inputManager.isKeyDown('a')) {
+                if (inputManager.isActionActive('left')) {
                     moveX -= this.speed;
                 }
-                if (inputManager.isKeyDown('d')) {
+                if (inputManager.isActionActive('right')) {
                     moveX += this.speed;
                 }
 
                 // Set direction based on priority: Left/Right takes precedence over Up/Down
-                if (inputManager.isKeyDown('a')) {
+                if (inputManager.isActionActive('left')) {
                     this.direction = 'left';
-                } else if (inputManager.isKeyDown('d')) {
+                } else if (inputManager.isActionActive('right')) {
                     this.direction = 'right';
-                } else if (inputManager.isKeyDown('w')) {
+                } else if (inputManager.isActionActive('up')) {
                     this.direction = 'up';
-                } else if (inputManager.isKeyDown('s')) {
+                } else if (inputManager.isActionActive('down')) {
                     this.direction = 'down';
                 }
 
