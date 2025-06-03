@@ -315,7 +315,7 @@
             }
 
 
-            /**
+          /**
              * Draws Lonk on the canvas with interpolation.
              * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
              * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
@@ -347,9 +347,9 @@
                         break;
                 }
 
-                // Calculate interpolated position (unscaled)
-                const interpolatedX = this.prevX + (this.x - this.prevX) * interpolation;
-                const interpolatedY = this.prevY + (this.y - this.prevY) * interpolation;
+                // Calculate interpolated position (unscaled) and round to the nearest integer
+                const interpolatedX = Math.round(this.prevX + (this.x - this.prevX) * interpolation);
+                const interpolatedY = Math.round(this.prevY + (this.y - this.prevY) * interpolation);
 
                 // Apply scaling for drawing and ensure integer pixel positions
                 const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;
