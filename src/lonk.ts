@@ -23,8 +23,6 @@ export interface LonkUpdateResult {
 export class Lonk implements IDrawable {
     public x: number;
     public y: number;
-    public prevX: number;
-    public prevY: number;
     private speed: number;
     public direction: Directions;
     public frame: 0 | 1;
@@ -43,8 +41,6 @@ export class Lonk implements IDrawable {
     constructor(x: number, y: number, spritesheet: HTMLImageElement) {
         this.x = x;
         this.y = y;
-        this.prevX = x;
-        this.prevY = y;
         this.speed = 2;
         this.direction = Directions.DOWN;
         this.frame = 0;
@@ -61,9 +57,6 @@ export class Lonk implements IDrawable {
      * @param canvasHeight - The height of the game canvas (unscaled).
      */
     public update(inputManager: InputManager, mapTile: MapScreen): LonkUpdateResult {
-        this.prevX = this.x;
-        this.prevY = this.y;
-
         let moveX = 0;
         let moveY = 0;
 
@@ -141,7 +134,6 @@ export class Lonk implements IDrawable {
             if (this.offsetX > 0) {
                 this.x = GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH;
             }
-            this.prevX = this.x;
         }
         if (offsetY === 0) {
             if (this.offsetY < 0) {
@@ -150,7 +142,6 @@ export class Lonk implements IDrawable {
             if (this.offsetY > 0) {
                 this.y = GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT;
             }
-            this.prevY = this.y;
         }
 
         this.offsetX = offsetX;
@@ -202,9 +193,6 @@ export class Lonk implements IDrawable {
                 this.x = 1;
                 break;
         }
-
-        this.prevX = this.x;
-        this.prevY = this.y;
     }
 
     /**
@@ -213,7 +201,7 @@ export class Lonk implements IDrawable {
      * @param lonkSpritesheet - The spritesheet image for Lonk.
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    public draw(ctx: CanvasRenderingContext2D, interpolation: number): void {
+    public draw(ctx: CanvasRenderingContext2D): void {
         let sourceX = 0;
         let flipHorizontal = false;
 
@@ -236,8 +224,8 @@ export class Lonk implements IDrawable {
         }
 
         // Calculate interpolated position (unscaled) and round to the nearest integer
-        const interpolatedX = Math.round(this.prevX + (this.x - this.prevX) * interpolation + this.offsetX);
-        const interpolatedY = Math.round(this.prevY + (this.y - this.prevY) * interpolation + this.offsetY);
+        const interpolatedX = this.x + this.offsetX;
+        const interpolatedY = this.y + this.offsetY;
 
         // Apply scaling for drawing and ensure integer pixel positions
         const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;

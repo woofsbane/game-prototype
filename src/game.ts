@@ -69,8 +69,7 @@ export class Game {
             this.delta = 0;
         }
 
-        const interpolation = this.delta / GameConfig.TIMESTEP;
-        this.render(interpolation);
+        this.render();
 
         this.frameCount++;
         if (now - this.lastFpsUpdateTime >= GameConfig.FPS_UPDATE_INTERVAL_MS) {
@@ -93,7 +92,7 @@ export class Game {
         this.worldMap.update(this.lonk);
     }
 
-    private render(interpolation: number): void {
-        this.renderer.draw([this.worldMap, this.lonk, this.fpsDisplay], interpolation);
+    private render(): void {
+        this.renderer.draw([this.worldMap, this.lonk, this.fpsDisplay]);
     }
 }

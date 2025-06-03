@@ -1,5 +1,5 @@
 export interface IDrawable {
-    draw(ctx: CanvasRenderingContext2D, interpolation: number): void;
+    draw(ctx: CanvasRenderingContext2D): void;
 }
 
 /**
@@ -22,11 +22,11 @@ export class Renderer {
         this.height = height;
     }
 
-    public draw(objects: IDrawable[], interpolation: number) {
+    public draw(objects: IDrawable[]) {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         for (let i = 0; i < objects.length; i++) {
-            objects[i].draw(this.ctx, interpolation);
+            objects[i].draw(this.ctx);
         }
     }
 }
