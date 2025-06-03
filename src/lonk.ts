@@ -103,9 +103,12 @@ export class Lonk implements IDrawable {
 
         // Collision detection
         const noCollisionX = !this.willCollideWithMap(newX, this.y, mapTile);
-        const noCollisionY = !this.willCollideWithMap(this.x, newY, mapTile);
-        if (noCollisionX && noCollisionY) {
+        if (noCollisionX) {
             this.x = newX;
+        }
+
+        const noCollisionY = !this.willCollideWithMap(this.x, newY, mapTile);
+        if (noCollisionY) {
             this.y = newY;
         }
 
