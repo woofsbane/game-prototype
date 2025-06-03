@@ -1,20 +1,14 @@
 import { FpsDisplay } from "./fpsDisplay";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
-import { MapScreen } from "./mapScreen";
 import { Renderer } from "./renderer";
 import { GameConfig } from "./config";
+import { WorldMap } from "./worldMap";
 
 /**
  * The main Game class, orchestrating all game components and managing the game loop.
  */
 export class Game {
-    private inputManager: InputManager;
-    private mapTile: MapScreen;
-    private lonk: Lonk;
-    private fpsDisplay: FpsDisplay;
-    private renderer: Renderer;
-
     private animationFrameId: number | null = null;
     private lastTime: DOMHighResTimeStamp = 0;
     private delta: number = 0;
@@ -32,18 +26,12 @@ export class Game {
      * @param renderer The Renderer instance for drawing game elements.
      */
     constructor(
-        inputManager: InputManager,
-        lonk: Lonk,
-        mapTile: MapScreen,
-        fpsDisplay: FpsDisplay,
-        renderer: Renderer,
-    ) {
-        this.inputManager = inputManager;
-        this.lonk = lonk;
-        this.mapTile = mapTile;
-        this.fpsDisplay = fpsDisplay;
-        this.renderer = renderer;
-    }
+        private inputManager: InputManager,
+        private lonk: Lonk,
+        private worldMap: WorldMap,
+        private fpsDisplay: FpsDisplay,
+        private renderer: Renderer,
+    ) { }
 
     /**
      * Initializes and starts the game loop.
@@ -96,10 +84,16 @@ export class Game {
     }
 
     private update(): void {
-        this.lonk.update(this.inputManager, this.mapTile);
+        if (!this.worldMap.isTransitioning()) {
+            const res = this.lonk.update(this.inputManager, this.worldMap.getScreen());
+            
+            this.worldMap.changeScreens(res.transition);
+        }
+
+        this.worldMap.update(this.lonk);
     }
 
     private render(interpolation: number): void {
-        this.renderer.draw([this.mapTile, this.lonk, this.fpsDisplay], interpolation);
+        this.renderer.draw([this.worldMap, this.lonk, this.fpsDisplay], interpolation);
     }
 }

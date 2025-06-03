@@ -5,9 +5,8 @@ import type { IDrawable } from "./renderer";
  * Represents the game's background map and handles tile-related logic.
  */
 export class MapScreen implements IDrawable {
-    private tileset: number[][];
-    private solidTiles: number[];
-    private spritesheet: HTMLImageElement;
+    private offsetX: number = 0;
+    private offsetY: number = 0;
 
     /**
      * Creates an instance of MapTile.
@@ -15,11 +14,7 @@ export class MapScreen implements IDrawable {
      * @param solidTiles - An array of sprite IDs that are considered solid.
      * @param spritesheet - The spritesheet image for background tiles.
      */
-    constructor(tileset: number[][], solidTiles: number[], spritesheet: HTMLImageElement) {
-        this.tileset = tileset;
-        this.solidTiles = solidTiles;
-        this.spritesheet = spritesheet;
-    }
+    constructor(private tileset: number[][], private solidTiles: number[], private spritesheet: HTMLImageElement) { }
 
     /**
      * Checks if a tile at the given coordinates is solid.
@@ -33,6 +28,11 @@ export class MapScreen implements IDrawable {
             return this.solidTiles.includes(tileId);
         }
         return false;
+    }
+
+    public setProgress(offsetX: number, offsetY: number) {
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
     }
 
     /**
@@ -50,7 +50,8 @@ export class MapScreen implements IDrawable {
                     this.spritesheet,
                     sx, sy,
                     GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
-                    x * scaledSpriteWidth, (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight,
+                    x * scaledSpriteWidth + this.offsetX * GameConfig.CANVAS_SCALE,
+                    (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight + this.offsetY * GameConfig.CANVAS_SCALE,
                     scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
                 );
             }

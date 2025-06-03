@@ -13,6 +13,10 @@ const enum LonkSprite {
     LEFT_FRAME2 = 3,
 }
 
+export interface LonkUpdateResult {
+    transition?: Directions;
+}
+
 /**
  * Represents the main player character, Lonk.
  */
@@ -27,6 +31,9 @@ export class Lonk implements IDrawable {
     private frameDelay: number;
     private frameCounter: number;
     private spritesheet: HTMLImageElement;
+
+    private offsetX: number = 0;
+    private offsetY: number = 0;
 
     /**
      * Creates an instance of Lonk.
@@ -53,7 +60,7 @@ export class Lonk implements IDrawable {
      * @param canvasWidth - The width of the game canvas (unscaled).
      * @param canvasHeight - The height of the game canvas (unscaled).
      */
-    public update(inputManager: InputManager, mapTile: MapScreen): void {
+    public update(inputManager: InputManager, mapTile: MapScreen): LonkUpdateResult {
         this.prevX = this.x;
         this.prevY = this.y;
 
@@ -90,9 +97,21 @@ export class Lonk implements IDrawable {
             moveY /= diagonalSpeed;
         }
 
-        // Clamp potential new position to unscaled canvas bounds
-        const newX = Math.max(0, Math.min(this.x + moveX, GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH));
-        const newY = Math.max(0, Math.min(this.y + moveY, GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT));
+        const newX = this.x + moveX;
+        const newY = this.y + moveY;
+
+        if (newX < 0) {
+            return { transition: Directions.LEFT };
+        }
+        if (newX > GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH) {
+            return { transition: Directions.RIGHT };
+        }
+        if (newY < 0) {
+            return { transition: Directions.UP };
+        }
+        if (newY > GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT) {
+            return { transition: Directions.DOWN };
+        }
 
         // Collision detection
         const noCollisionX = !this.willCollideWithMap(newX, this.y, mapTile);
@@ -110,6 +129,32 @@ export class Lonk implements IDrawable {
                 this.frame = (this.frame + 1) % 2 as 0 | 1;
             }
         }
+
+        return {};
+    }
+
+    public setProgress(offsetX: number, offsetY: number) {
+        if (offsetX === 0) {
+            if (this.offsetX < 0) {
+                this.x = 0;
+            }
+            if (this.offsetX > 0) {
+                this.x = GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH;
+            }
+            this.prevX = this.x;
+        }
+        if (offsetY === 0) {
+            if (this.offsetY < 0) {
+                this.y = 0;
+            }
+            if (this.offsetY > 0) {
+                this.y = GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT;
+            }
+            this.prevY = this.y;
+        }
+
+        this.offsetX = offsetX;
+        this.offsetY = offsetY;
     }
 
     /**
@@ -142,6 +187,26 @@ export class Lonk implements IDrawable {
         return false;
     }
 
+    public changeScreen(direction: Directions): void {
+        switch (direction) {
+            case Directions.UP:
+                this.y = GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT - 1;
+                break;
+            case Directions.DOWN:
+                this.y = 1;
+                break;
+            case Directions.LEFT:
+                this.x = GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH - 1;
+                break;
+            case Directions.RIGHT:
+                this.x = 1;
+                break;
+        }
+
+        this.prevX = this.x;
+        this.prevY = this.y;
+    }
+
     /**
      * Draws Lonk on the canvas with interpolation.
      * @param ctx - The 2D rendering context of the canvas.
@@ -171,8 +236,8 @@ export class Lonk implements IDrawable {
         }
 
         // Calculate interpolated position (unscaled) and round to the nearest integer
-        const interpolatedX = Math.round(this.prevX + (this.x - this.prevX) * interpolation);
-        const interpolatedY = Math.round(this.prevY + (this.y - this.prevY) * interpolation);
+        const interpolatedX = Math.round(this.prevX + (this.x - this.prevX) * interpolation + this.offsetX);
+        const interpolatedY = Math.round(this.prevY + (this.y - this.prevY) * interpolation + this.offsetY);
 
         // Apply scaling for drawing and ensure integer pixel positions
         const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;
