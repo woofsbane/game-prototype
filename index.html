@@ -20,23 +20,36 @@
          * @property {number} SPRITE_HEIGHT - The height of a single sprite in pixels.
          * @property {number} FPS_UPDATE_INTERVAL - The interval (in milliseconds) at which the FPS counter is updated.
          * @property {number} CANVAS_SCALE - The scaling factor for the canvas resolution.
+         * @property {number} LONK_COLLISION_OFFSET_X - X offset for Lonk's collision box from left edge.
+         * @property {number} LONK_COLLISION_OFFSET_Y - Y offset for Lonk's collision box from top edge.
+         * @property {number} LONK_COLLISION_WIDTH_REDUCTION - Amount to reduce Lonk's sprite width for collision.
+         * @property {number} LONK_COLLISION_HEIGHT_REDUCTION - Amount to reduce Lonk's sprite height for collision.
          */
-        const GameConfig = {
+        const GameConfig = Object.freeze({
             TIMESTEP: 1000 / 30,
             MAX_DELTA_TIME: 250,
             MAX_UPDATES_PER_FRAME: 5,
             SPRITE_WIDTH: 16,
             SPRITE_HEIGHT: 16,
             FPS_UPDATE_INTERVAL: 1000, // Update FPS every 1 second
-            CANVAS_SCALE: 6 // Scale up the canvas by 4x
-        };
+            CANVAS_SCALE: 6, // Scale up the canvas
+            LONK_COLLISION_OFFSET_X: 4,
+            LONK_COLLISION_OFFSET_Y: 6,
+            LONK_COLLISION_WIDTH_REDUCTION: 8, // 4 from each side (16 - 8 = 8 actual width)
+            LONK_COLLISION_HEIGHT_REDUCTION: 8 // 6 from top + 2 from bottom (16 - 8 = 8 actual height)
+        });
 
-        const Directions = {
+        /**
+         * Defines the cardinal directions as immutable constants.
+         * @readonly
+         * @enum {string}
+         */
+        const Directions = Object.freeze({
             UP: 'up',
             DOWN: 'down',
             LEFT: 'left',
             RIGHT: 'right'
-        };
+        });
 
         /**
          * Manages the loading and retrieval of game assets like images.
@@ -115,8 +128,8 @@
                  */
                 this.keys = {};
                 /**
-                 * A mapping from abstract actions to an array of keys that trigger them.
-                 * @type {Object.<string, string>}
+                 * A mapping from abstract actions (using Directions enum) to the primary key that triggers them.
+                 * @type {Object.<Directions, string>}
                  */
                 this.actionMap = {
                     [Directions.UP]: 'w',
@@ -142,12 +155,11 @@
 
             /**
              * Checks if an abstract action (e.g., 'up', 'down') is currently active.
-             * @param {string} action - The action to check (e.g., 'up', 'left'). Case-insensitive.
+             * @param {Directions} action - The action to check (e.g., Directions.UP, Directions.LEFT).
              * @returns {boolean} True if any key mapped to the action is pressed, false otherwise.
              */
             isActionActive(action) {
-                const keyForAction = this.actionMap[action.toLowerCase()];
-                return this.keys[keyForAction];
+                return !!this.keys[this.actionMap[action]];
             }
         }
 
@@ -173,7 +185,7 @@
                 this.speed = 2;
                 /**
                  * The current direction Lonk is facing.
-                 * @type {'up' | 'down' | 'left' | 'right'}
+                 * @type {Directions}
                  */
                 this.direction = Directions.DOWN;
                 /**
@@ -257,7 +269,7 @@
                     this.y = newY;
                 }
 
-                // Only animate if Lonk actually moved
+                // Only animate if Lonk actually moved AND didn't hit a wall
                 if ((moveX !== 0 || moveY !== 0) && noCollisionX && noCollisionY) {
                     this.frameCounter++;
                     if (this.frameCounter >= this.frameDelay) {
@@ -277,10 +289,10 @@
              */
             checkCollision(potentialX, potentialY, backgroundMap, solidTiles) {
                 // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
-                const lonkLeft = potentialX + 4;
-                const lonkTop = potentialY + 6;
-                const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - 4;
-                const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - 2;
+                const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
+                const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
+                const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
+                const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
 
                 // Determine the range of tiles Lonk is currently overlapping or about to overlap
                 const startTileX = Math.floor(lonkLeft / GameConfig.SPRITE_WIDTH);
@@ -310,28 +322,27 @@
              * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
              */
             draw(ctx, lonkSpritesheet, interpolation) {
-                let lonkSx = 0;
-                let lonkSy = 0; // Assuming all Lonk sprites are on the first row
+                let sourceX = 0;
                 let flipHorizontal = false;
 
                 switch (this.direction) {
                     case Directions.DOWN:
-                        lonkSx = 0 * GameConfig.SPRITE_WIDTH;
+                        sourceX = 0 * GameConfig.SPRITE_WIDTH;
                         if (this.frame === 1) {
                             flipHorizontal = true; // For down-facing, frame 1 is a mirrored version
                         }
                         break;
                     case Directions.UP:
-                        lonkSx = 1 * GameConfig.SPRITE_WIDTH;
+                        sourceX = 1 * GameConfig.SPRITE_WIDTH;
                         if (this.frame === 1) {
                             flipHorizontal = true; // For up-facing, frame 1 is a mirrored version
                         }
                         break;
                     case Directions.LEFT:
-                        lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for left
+                        sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for left
                         break;
                     case Directions.RIGHT:
-                        lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for right, but flipped
+                        sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for right, but flipped
                         flipHorizontal = true;
                         break;
                 }
@@ -354,7 +365,7 @@
                     ctx.scale(-1, 1);
                     ctx.drawImage(
                         lonkSpritesheet,
-                        lonkSx, lonkSy,
+                        sourceX, 0,
                         GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
                         -scaledSpriteWidth / 2, -scaledSpriteHeight / 2,
                         scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
@@ -362,7 +373,7 @@
                 } else {
                     ctx.drawImage(
                         lonkSpritesheet,
-                        lonkSx, lonkSy,
+                        sourceX, 0,
                         GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
                         scaledX, scaledY, // Destination (scaled)
                         scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
@@ -561,23 +572,6 @@
             constructor() {
                 /** @type {HTMLCanvasElement} */
                 this.canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('gameCanvas'));
-                // Scale the canvas resolution by GameConfig.CANVAS_SCALE
-                this.canvas.width = 10 * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-                this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
-
-                /** @type {AssetManager} */
-                this.assetManager = new AssetManager();
-                /** @type {InputManager} */
-                this.inputManager = new InputManager();
-
-                // Load game assets
-                /** @type {HTMLImageElement} */
-                this.backgroundSpritesheet = this.assetManager.loadImage('background', 'tilesets/background.png');
-                /** @type {HTMLImageElement} */
-                this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
-
-                /** @type {Lonk} */
-                this.lonk = new Lonk(75, 75); // Lonk's positions remain in the unscaled game coordinates
 
                 /**
                  * The 2D array representing the game's background map.
@@ -595,6 +589,26 @@
                     [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
                     [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
                 ];
+
+                // Scale the canvas resolution based on map dimensions and GameConfig.CANVAS_SCALE
+                this.canvas.width = this.background[0].length * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+                this.canvas.height = this.background.length * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+
+
+                /** @type {AssetManager} */
+                this.assetManager = new AssetManager();
+                /** @type {InputManager} */
+                this.inputManager = new InputManager();
+
+                // Load game assets
+                /** @type {HTMLImageElement} */
+                this.backgroundSpritesheet = this.assetManager.loadImage('background', 'tilesets/background.png');
+                /** @type {HTMLImageElement} */
+                this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
+
+                /** @type {Lonk} */
+                this.lonk = new Lonk(75, 75); // Lonk's positions remain in the unscaled game coordinates
+
 
                 /**
                  * An array of sprite IDs that are considered solid for collision detection.
