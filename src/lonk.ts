@@ -50,7 +50,7 @@ export class Lonk {
      * @param canvasWidth - The width of the game canvas (unscaled).
      * @param canvasHeight - The height of the game canvas (unscaled).
      */
-    public update(inputManager: InputManager, mapTile: MapTile, canvasWidth: number, canvasHeight: number): void {
+    public update(inputManager: InputManager, mapTile: MapTile): void {
         this.prevX = this.x;
         this.prevY = this.y;
 
@@ -88,8 +88,8 @@ export class Lonk {
         }
 
         // Clamp potential new position to unscaled canvas bounds
-        const newX = Math.max(0, Math.min(this.x + moveX, canvasWidth - GameConfig.SPRITE_WIDTH));
-        const newY = Math.max(0, Math.min(this.y + moveY, canvasHeight - GameConfig.SPRITE_HEIGHT));
+        const newX = Math.max(0, Math.min(this.x + moveX, GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH));
+        const newY = Math.max(0, Math.min(this.y + moveY, GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT));
 
         // Collision detection
         const noCollisionX = !this.willCollideWithMap(newX, this.y, mapTile);

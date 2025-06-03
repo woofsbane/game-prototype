@@ -62,9 +62,7 @@ export class Game {
     }
 
     private update(): void {
-        this.lonk.update(this.inputManager, this.mapTile,
-            this.canvas.width / GameConfig.CANVAS_SCALE,
-            this.canvas.height / GameConfig.CANVAS_SCALE - GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT);
+        this.lonk.update(this.inputManager, this.mapTile);
     }
 
     private render(interpolation: number): void {

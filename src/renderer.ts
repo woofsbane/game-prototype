@@ -30,7 +30,7 @@ export class Renderer {
     /**
      * Clears the entire canvas.
      */
-    clear(): void {
+    public clear(): void {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
@@ -38,7 +38,7 @@ export class Renderer {
      * Draws the background tiles using the MapTile instance.
      * @param mapTile - The MapTile instance to draw.
      */
-    drawBackground(mapTile: MapTile): void {
+    public drawBackground(mapTile: MapTile): void {
         mapTile.draw(this.ctx);
     }
 
@@ -47,7 +47,7 @@ export class Renderer {
      * @param lonk - The Lonk instance to draw.
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    drawLonk(lonk: Lonk, interpolation: number): void {
+    public drawLonk(lonk: Lonk, interpolation: number): void {
         lonk.draw(this.ctx, this.lonkSpritesheet, interpolation);
     }
 
@@ -55,7 +55,7 @@ export class Renderer {
      * Draws the current Frames Per Second (FPS) on the canvas.
      * @param fps - The current FPS value.
      */
-    drawFPS(fps: number): void {
+    public drawFPS(fps: number): void {
         this.ctx.fillStyle = 'red';
         // Adjust font size and position for scaled canvas
         this.ctx.font = `${5 * GameConfig.CANVAS_SCALE}px Arial`;

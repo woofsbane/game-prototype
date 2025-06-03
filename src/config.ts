@@ -8,6 +8,8 @@ export interface GlobalConfig {
     readonly SPRITE_WIDTH: number;
     readonly SPRITE_HEIGHT: number;
     readonly FPS_UPDATE_INTERVAL_MS: number;
+    readonly MAP_WIDTH_PX: number;
+    readonly MAP_HEIGHT_PX: number;
     readonly CANVAS_SCALE: number;
     readonly LONK_COLLISION_OFFSET_X: number;
     readonly LONK_COLLISION_OFFSET_Y: number;
@@ -23,6 +25,8 @@ export const GameConfig: GlobalConfig = Object.freeze({
     SPRITE_WIDTH: 16,
     SPRITE_HEIGHT: 16,
     FPS_UPDATE_INTERVAL_MS: 1000,
+    MAP_WIDTH_PX: 160,
+    MAP_HEIGHT_PX: 128,
     CANVAS_SCALE: 6,
     LONK_COLLISION_OFFSET_X: 4,
     LONK_COLLISION_OFFSET_Y: 6,
