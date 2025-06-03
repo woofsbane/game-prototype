@@ -24,6 +24,7 @@
          * @property {number} LONK_COLLISION_OFFSET_Y - Y offset for Lonk's collision box from top edge.
          * @property {number} LONK_COLLISION_WIDTH_REDUCTION - Amount to reduce Lonk's sprite width for collision.
          * @property {number} LONK_COLLISION_HEIGHT_REDUCTION - Amount to reduce Lonk's sprite height for collision.
+         * @property {number} GAME_BAR_HEIGHT - Offset for the game bar.
          */
         const GameConfig = Object.freeze({
             TIMESTEP: 1000 / 30,
@@ -165,6 +166,91 @@
         }
 
         /**
+         * Represents the game's background map and handles tile-related logic.
+         */
+        class MapTile {
+            /**
+             * Creates an instance of MapTile.
+             * @param {number[][]} mapData - The 2D array representing the game's background tiles.
+             * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
+             * @param {HTMLImageElement} spritesheet - The spritesheet image for background tiles.
+             */
+            constructor(mapData, solidTiles, spritesheet) {
+                /**
+                 * The 2D array representing the game's background map.
+                 * Each number corresponds to a sprite ID in the background spritesheet.
+                 * @type {number[][]}
+                 */
+                this.mapData = mapData;
+                /**
+                 * An array of sprite IDs that are considered solid for collision detection.
+                 * @type {number[]}
+                 */
+                this.solidTiles = solidTiles;
+                /**
+                 * The spritesheet image for background tiles.
+                 * @type {HTMLImageElement}
+                 */
+                this.spritesheet = spritesheet;
+            }
+
+            /**
+             * Gets the map data.
+             * @returns {number[][]} The 2D array of map data.
+             */
+            getMapData() {
+                return this.mapData;
+            }
+
+            /**
+             * Checks if a tile at the given coordinates is solid.
+             * @param {number} tileX - The X coordinate of the tile.
+             * @param {number} tileY - The Y coordinate of the tile.
+             * @returns {boolean} True if the tile is solid, false otherwise.
+             */
+            isTileSolid(tileX, tileY) {
+                if (tileY >= 0 && tileY < this.mapData.length && tileX >= 0 && tileX < this.mapData[tileY].length) {
+                    const tileId = this.mapData[tileY][tileX];
+                    return this.solidTiles.includes(tileId);
+                }
+                return false;
+            }
+
+            /**
+             * Calculates the source X and Y coordinates on the spritesheet for a given sprite ID.
+             * @param {number} spriteId - The ID of the sprite.
+             * @returns {{sx: number, sy: number}} An object containing the source X (sx) and source Y (sy) coordinates.
+             */
+            getSpriteSourceCoords(spriteId) {
+                const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.spritesheet.width;
+                const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.spritesheet.width) * GameConfig.SPRITE_HEIGHT;
+                return { sx, sy };
+            }
+
+            /**
+             * Draws the background tiles on the canvas.
+             * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+             */
+            draw(ctx) {
+                const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+                const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+
+                for (let y = 0; y < this.mapData.length; y++) {
+                    for (let x = 0; x < this.mapData[y].length; x++) {
+                        const { sx, sy } = this.getSpriteSourceCoords(this.mapData[y][x]);
+                        ctx.drawImage(
+                            this.spritesheet,
+                            sx, sy,
+                            GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
+                            x * scaledSpriteWidth, (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight,
+                            scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
+                        );
+                    }
+                }
+            }
+        }
+
+        /**
          * Represents the main player character, Lonk.
          */
         class Lonk {
@@ -209,12 +295,11 @@
             /**
              * Updates Lonk's position and animation based on input.
              * @param {InputManager} inputManager - The input manager instance.
-             * @param {number[][]} backgroundMap - The 2D array representing the game's background tiles.
-             * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
+             * @param {MapTile} mapTile - The MapTile instance for collision checking.
              * @param {number} canvasWidth - The width of the game canvas (unscaled).
              * @param {number} canvasHeight - The height of the game canvas (unscaled).
              */
-            update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
+            update(inputManager, mapTile, canvasWidth, canvasHeight) {
                 // Store current position as previous before updating
                 this.prevX = this.x;
                 this.prevY = this.y;
@@ -227,7 +312,7 @@
                 } else if (inputManager.isActionActive(Directions.DOWN)) {
                     moveY += this.speed;
                 }
-                
+
                 if (inputManager.isActionActive(Directions.LEFT)) {
                     moveX -= this.speed;
                 } else if (inputManager.isActionActive(Directions.RIGHT)) {
@@ -258,8 +343,8 @@
                 const newY = Math.max(0, Math.min(this.y + moveY, canvasHeight - GameConfig.SPRITE_HEIGHT));
 
                 // Collision detection
-                const noCollisionX = !this.checkCollision(newX, this.y, backgroundMap, solidTiles);
-                const noCollisionY = !this.checkCollision(this.x, newY, backgroundMap, solidTiles);
+                const noCollisionX = !this.checkCollision(newX, this.y, mapTile);
+                const noCollisionY = !this.checkCollision(this.x, newY, mapTile);
                 if (noCollisionX && noCollisionY) {
                     this.x = newX;
                     this.y = newY;
@@ -279,11 +364,10 @@
              * Checks for collision with solid background tiles at a given potential position.
              * @param {number} potentialX - The potential X coordinate of Lonk.
              * @param {number} potentialY - The potential Y coordinate of Lonk.
-             * @param {number[][]} backgroundMap - The 2D array representing the game's background tiles.
-             * @param {number[]} solidTiles - An array of sprite IDs that are considered solid.
+             * @param {MapTile} mapTile - The MapTile instance for collision checking.
              * @returns {boolean} True if a collision is detected, false otherwise.
              */
-            checkCollision(potentialX, potentialY, backgroundMap, solidTiles) {
+            checkCollision(potentialX, potentialY, mapTile) {
                 // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
                 const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
                 const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
@@ -298,12 +382,8 @@
 
                 for (let row = startTileY; row <= endTileY; row++) {
                     for (let col = startTileX; col <= endTileX; col++) {
-                        // Ensure tile coordinates are within the map boundaries
-                        if (row >= 0 && row < backgroundMap.length && col >= 0 && col < backgroundMap[row].length) {
-                            const tileId = backgroundMap[row][col];
-                            if (solidTiles.includes(tileId)) {
-                                return true; // Collision detected with a solid tile
-                            }
+                        if (mapTile.isTileSolid(col, row)) {
+                            return true; // Collision detected with a solid tile
                         }
                     }
                 }
@@ -312,11 +392,11 @@
 
 
             /**
-               * Draws Lonk on the canvas with interpolation.
-               * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
-               * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
-               * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
-               */
+             * Draws Lonk on the canvas with interpolation.
+             * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+             * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
+             * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
+             */
             draw(ctx, lonkSpritesheet, interpolation) {
                 let sourceX = 0;
                 let flipHorizontal = false;
@@ -386,16 +466,13 @@
             /**
              * Creates an instance of Renderer.
              * @param {HTMLCanvasElement} canvas - The HTML canvas element to draw on.
-             * @param {HTMLImageElement} backgroundSpritesheet - The spritesheet for background tiles.
              * @param {HTMLImageElement} lonkSpritesheet - The spritesheet for Lonk.
              */
-            constructor(canvas, backgroundSpritesheet, lonkSpritesheet) {
+            constructor(canvas, lonkSpritesheet) {
                 /** @type {HTMLCanvasElement} */
                 this.canvas = canvas;
                 /** @type {CanvasRenderingContext2D} */
                 this.ctx = canvas.getContext('2d');
-                /** @type {HTMLImageElement} */
-                this.backgroundSpritesheet = backgroundSpritesheet;
                 /** @type {HTMLImageElement} */
                 this.lonkSpritesheet = lonkSpritesheet;
 
@@ -410,36 +487,11 @@
             }
 
             /**
-             * Calculates the source X and Y coordinates on the spritesheet for a given sprite ID.
-             * @param {number} spriteId - The ID of the sprite.
-             * @returns {{sx: number, sy: number}} An object containing the source X (sx) and source Y (sy) coordinates.
+             * Draws the background tiles using the MapTile instance.
+             * @param {MapTile} mapTile - The MapTile instance to draw.
              */
-            getSpriteSourceCoords(spriteId) {
-                const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.backgroundSpritesheet.width;
-                const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.backgroundSpritesheet.width) * GameConfig.SPRITE_HEIGHT;
-                return { sx, sy };
-            }
-
-            /**
-             * Draws the background tiles based on a 2D map array.
-             * @param {number[][]} backgroundMap - A 2D array representing the background tiles, where each number is a sprite ID.
-             */
-            drawBackground(backgroundMap) {
-                const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-                const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
-
-                for (let y = 0; y < backgroundMap.length; y++) {
-                    for (let x = 0; x < backgroundMap[y].length; x++) {
-                        const { sx, sy } = this.getSpriteSourceCoords(backgroundMap[y][x]);
-                        this.ctx.drawImage(
-                            this.backgroundSpritesheet,
-                            sx, sy,
-                            GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
-                            x * scaledSpriteWidth, (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight,
-                            scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
-                        );
-                    }
-                }
+            drawBackground(mapTile) {
+                mapTile.draw(this.ctx);
             }
 
             /**
@@ -570,24 +622,10 @@
                 this.canvas = /** @type {HTMLCanvasElement} */ (document.getElementById('gameCanvas'));
 
                 /**
-                 * The 2D array representing the game's background map.
-                 * Each number corresponds to a sprite ID in the background spritesheet.
-                 * @type {number[][]}
+                 * An array of sprite IDs that are considered solid for collision detection.
+                 * @type {number[]}
                  */
-                this.background = [
-                    [44, 45, 29, 28, 29, 28, 29, 35, 35, 28],
-                    [28, 29, 35, 7, 8, 9, 0, 2, 35, 12],
-                    [1, 2, 35, 23, 24, 25, 32, 18, 35, 28],
-                    [33, 17, 2, 35, 35, 35, 35, 16, 2, 12],
-                    [35, 16, 18, 35, 35, 35, 0, 17, 34, 28],
-                    [1, 17, 18, 115, 35, 115, 32, 34, 115, 12],
-                    [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
-                    [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
-                ];
-
-                // Scale the canvas resolution based on map dimensions and GameConfig.CANVAS_SCALE
-                this.canvas.width = 10 * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-                this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+                this.solidTiles = [8, 11, 12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 159];
 
 
                 /** @type {AssetManager} */
@@ -601,15 +639,12 @@
                 /** @type {HTMLImageElement} */
                 this.lonkSpritesheet = this.assetManager.loadImage('lonk', 'tilesets/lonk.png');
 
+                /** @type {MapTile | null} */
+                this.mapTile = null;
+
                 /** @type {Lonk} */
                 this.lonk = new Lonk(75, 75); // Lonk's positions remain in the unscaled game coordinates
 
-
-                /**
-                 * An array of sprite IDs that are considered solid for collision detection.
-                 * @type {number[]}
-                 */
-                this.solidTiles = [8, 11, 12, 13, 14, 15, 28, 29, 30, 31, 44, 45, 159];
 
                 /**
                  * The current calculated Frames Per Second.
@@ -630,7 +665,9 @@
             async start() {
                 try {
                     await this.assetManager.loadAll();
-                    this.renderer = new Renderer(this.canvas, this.assetManager.getAsset('background'), this.assetManager.getAsset('lonk'));
+                    // Initialize MapTile after assets are loaded
+                    this.mapTile = new MapTile(this.getInitialMapData(), this.solidTiles, this.assetManager.getAsset('background'));
+                    this.renderer = new Renderer(this.canvas, this.assetManager.getAsset('lonk'));
                     this.gameLoop = new GameLoop(
                         this.update.bind(this),
                         this.render.bind(this),
@@ -640,6 +677,23 @@
                 } catch (error) {
                     console.error("Game failed to start due to asset loading errors:", error);
                 }
+            }
+
+            /**
+             * Provides the initial map data. This could be loaded from a file in a real game.
+             * @returns {number[][]} The 2D array representing the map.
+             */
+            getInitialMapData() {
+                return [
+                    [44, 45, 29, 28, 29, 28, 29, 35, 35, 28],
+                    [28, 29, 35, 7, 8, 9, 0, 2, 35, 12],
+                    [1, 2, 35, 23, 24, 25, 32, 18, 35, 28],
+                    [33, 17, 2, 35, 35, 35, 35, 16, 2, 12],
+                    [35, 16, 18, 35, 35, 35, 0, 17, 34, 28],
+                    [1, 17, 18, 115, 35, 115, 32, 34, 115, 12],
+                    [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
+                    [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
+                ];
             }
 
             /**
@@ -656,7 +710,7 @@
              */
             update() {
                 // Pass unscaled canvas dimensions to Lonk's update for consistent game logic
-                this.lonk.update(this.inputManager, this.background, this.solidTiles,
+                this.lonk.update(this.inputManager, this.mapTile,
                     this.canvas.width / GameConfig.CANVAS_SCALE,
                     this.canvas.height / GameConfig.CANVAS_SCALE - GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT);
                 // Add more game update logic here
@@ -668,7 +722,7 @@
              */
             render(interpolation) {
                 this.renderer.clear();
-                this.renderer.drawBackground(this.background);
+                this.renderer.drawBackground(this.mapTile);
                 this.renderer.drawLonk(this.lonk, interpolation);
                 this.renderer.drawFPS(this.currentFps);
             }
