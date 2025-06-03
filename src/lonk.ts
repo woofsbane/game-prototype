@@ -8,8 +8,8 @@ import { MapTile } from "./mapTile";
 export class Lonk {
     public x: number;
     public y: number;
-    public prevX: number; // Store previous X for interpolation
-    public prevY: number; // Store previous Y for interpolation
+    public prevX: number;
+    public prevY: number;
     private speed: number;
     public direction: Directions;
     public frame: 0 | 1;
@@ -24,8 +24,8 @@ export class Lonk {
     constructor(x: number, y: number) {
         this.x = x;
         this.y = y;
-        this.prevX = x; // Store previous X for interpolation
-        this.prevY = y; // Store previous Y for interpolation
+        this.prevX = x;
+        this.prevY = y;
         this.speed = 2;
         this.direction = Directions.DOWN;
         this.frame = 0;
@@ -40,8 +40,7 @@ export class Lonk {
      * @param canvasWidth - The width of the game canvas (unscaled).
      * @param canvasHeight - The height of the game canvas (unscaled).
      */
-    update(inputManager: InputManager, mapTile: MapTile, canvasWidth: number, canvasHeight: number): void {
-        // Store current position as previous before updating
+    public update(inputManager: InputManager, mapTile: MapTile, canvasWidth: number, canvasHeight: number): void {
         this.prevX = this.x;
         this.prevY = this.y;
 
@@ -83,8 +82,8 @@ export class Lonk {
         const newY = Math.max(0, Math.min(this.y + moveY, canvasHeight - GameConfig.SPRITE_HEIGHT));
 
         // Collision detection
-        const noCollisionX = !this.checkCollision(newX, this.y, mapTile);
-        const noCollisionY = !this.checkCollision(this.x, newY, mapTile);
+        const noCollisionX = !this.willCollideWithMap(newX, this.y, mapTile);
+        const noCollisionY = !this.willCollideWithMap(this.x, newY, mapTile);
         if (noCollisionX && noCollisionY) {
             this.x = newX;
             this.y = newY;
@@ -107,7 +106,7 @@ export class Lonk {
      * @param mapTile - The MapTile instance for collision checking.
      * @returns True if a collision is detected, false otherwise.
      */
-    checkCollision(potentialX: number, potentialY: number, mapTile: MapTile): boolean {
+    private willCollideWithMap(potentialX: number, potentialY: number, mapTile: MapTile): boolean {
         // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
         const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
         const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
@@ -123,11 +122,11 @@ export class Lonk {
         for (let row = startTileY; row <= endTileY; row++) {
             for (let col = startTileX; col <= endTileX; col++) {
                 if (mapTile.isTileSolid(col, row)) {
-                    return true; // Collision detected with a solid tile
+                    return true;
                 }
             }
         }
-        return false; // No collision
+        return false;
     }
 
     /**
@@ -136,7 +135,7 @@ export class Lonk {
      * @param lonkSpritesheet - The spritesheet image for Lonk.
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    draw(ctx: CanvasRenderingContext2D, lonkSpritesheet: HTMLImageElement, interpolation: number): void {
+    public draw(ctx: CanvasRenderingContext2D, lonkSpritesheet: HTMLImageElement, interpolation: number): void {
         let sourceX = 0;
         let flipHorizontal = false;
 
@@ -144,20 +143,20 @@ export class Lonk {
             case Directions.DOWN:
                 sourceX = 0 * GameConfig.SPRITE_WIDTH;
                 if (this.frame === 1) {
-                    flipHorizontal = true; // For down-facing, frame 1 is a mirrored version
+                    flipHorizontal = true;
                 }
                 break;
             case Directions.UP:
                 sourceX = 1 * GameConfig.SPRITE_WIDTH;
                 if (this.frame === 1) {
-                    flipHorizontal = true; // For up-facing, frame 1 is a mirrored version
+                    flipHorizontal = true;
                 }
                 break;
             case Directions.LEFT:
-                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for left
+                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH;
                 break;
             case Directions.RIGHT:
-                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for right, but flipped
+                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH;
                 flipHorizontal = true;
                 break;
         }

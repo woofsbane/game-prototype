@@ -16,10 +16,6 @@ export class InputManager {
         this.addEventListeners();
     }
 
-    /**
-     * Adds event listeners for keyboard keydown and keyup events.
-     * @private
-     */
     private addEventListeners(): void {
         document.addEventListener('keydown', (e: KeyboardEvent) => {
             this.keys[e.key.toLowerCase()] = true;
@@ -34,7 +30,7 @@ export class InputManager {
      * @param action - The action to check (e.g., Directions.UP, Directions.LEFT).
      * @returns True if any key mapped to the action is pressed, false otherwise.
      */
-    isActive(action: Directions): boolean {
+    public isActive(action: Directions): boolean {
         return !!this.keys[this.actionMap[action]];
     }
 }

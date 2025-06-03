@@ -11,11 +11,11 @@ import { Renderer } from "./renderer";
 export class Game {
     private canvas: HTMLCanvasElement;
     private inputManager: InputManager;
-    private mapTile: MapTile; // Now definitely assigned in constructor
+    private mapTile: MapTile;
     private lonk: Lonk;
     private currentFps: number = 0;
-    private renderer: Renderer; // Now definitely assigned in constructor
-    private gameLoop: GameLoop; // Now definitely assigned in constructor
+    private renderer: Renderer;
+    private gameLoop: GameLoop;
 
     /**
      * Creates an instance of Game.
@@ -33,49 +33,41 @@ export class Game {
         lonk: Lonk,
         mapTile: MapTile,
         renderer: Renderer,
-        gameLoop: GameLoop
     ) {
         this.canvas = canvas;
         this.inputManager = inputManager;
         this.lonk = lonk;
         this.mapTile = mapTile;
         this.renderer = renderer;
-        this.gameLoop = gameLoop;
 
-        // Any other immediate setup that doesn't depend on async operations
-        // and is specific to the Game's initial state
+        this.gameLoop = new GameLoop(
+            this.update.bind(this),
+            this.render.bind(this),
+            (fps: number) => this.currentFps = fps,
+        );
     }
 
     /**
      * Initializes and starts the game loop.
      */
-    start(): void {
+    public start(): void {
         this.gameLoop.start();
     }
 
     /**
      * Stops the game loop.
      */
-    stop(): void {
+    public stop(): void {
         this.gameLoop.stop();
     }
 
-    /**
-     * Updates the game state. This method is called at a fixed timestep.
-     */
-    update(): void {
-        // Pass unscaled canvas dimensions to Lonk's update for consistent game logic
+    private update(): void {
         this.lonk.update(this.inputManager, this.mapTile,
             this.canvas.width / GameConfig.CANVAS_SCALE,
             this.canvas.height / GameConfig.CANVAS_SCALE - GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT);
-        // Add more game update logic here
     }
 
-    /**
-     * Renders the game elements to the canvas.
-     * @param interpolation - The interpolation factor (0 to 1) for smooth rendering between fixed updates.
-     */
-    render(interpolation: number): void {
+    private render(interpolation: number): void {
         this.renderer.clear();
         this.renderer.drawBackground(this.mapTile);
         this.renderer.drawLonk(this.lonk, interpolation);

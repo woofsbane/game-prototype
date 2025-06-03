@@ -31,7 +31,7 @@ export class GameLoop {
     /**
      * Starts the game loop.
      */
-    start(): void {
+    public start(): void {
         this.lastTime = performance.now();
         this.lastFpsUpdateTime = performance.now();
         this.delta = 0;
@@ -41,18 +41,13 @@ export class GameLoop {
     /**
      * Stops the game loop.
      */
-    stop(): void {
+    public stop(): void {
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
             this.animationFrameId = null;
         }
     }
 
-    /**
-     * The core game loop function.
-     * @param now - The current time provided by requestAnimationFrame.
-     * @private
-     */
     private loop(now: DOMHighResTimeStamp): void {
         const elapsed = now - this.lastTime;
         this.lastTime = now;
@@ -65,8 +60,6 @@ export class GameLoop {
             updatesCount++;
         }
 
-        // If we hit the max updates, reset delta to prevent accumulating too much time
-        // This can happen if the game lags significantly
         if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTEP) {
             this.delta = 0;
         }
@@ -75,7 +68,7 @@ export class GameLoop {
         this.renderCallback(interpolation);
 
         this.frameCount++;
-        if (now - this.lastFpsUpdateTime >= GameConfig.FPS_UPDATE_INTERVAL) {
+        if (now - this.lastFpsUpdateTime >= GameConfig.FPS_UPDATE_INTERVAL_MS) {
             this.currentFps = this.frameCount;
             this.frameCount = 0;
             this.lastFpsUpdateTime = now;

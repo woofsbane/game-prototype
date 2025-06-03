@@ -4,7 +4,6 @@ import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
 import { MapTile } from "./mapTile";
 import { Renderer } from "./renderer";
-import { GameLoop } from "./gameLoop";
 import "./style.css";
 
 // Entry point: Initialize and start the game when the DOM is fully loaded.
@@ -17,7 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const assetManager = new AssetManager();
         assetManager.loadImage('background', 'tilesets/background.png');
         assetManager.loadImage('lonk', 'tilesets/lonk.png');
-        await assetManager.loadAll(); // Wait for all assets to load
+        await assetManager.waitForLoad(); // Wait for all assets to load
 
         // 3. Retrieve loaded assets
         const backgroundAsset = assetManager.getAsset('background');
@@ -46,31 +45,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mapTile = new MapTile(initialMapData, solidTiles, backgroundAsset);
         const renderer = new Renderer(canvas, lonkAsset);
 
-        // We'll create the Game instance first, then set up GameLoop with its methods
-        // This is a common pattern when `GameLoop` needs methods from `Game`.
-        let gameInstance: Game; // Declare gameInstance here
-
-        const gameLoop = new GameLoop(
-            () => gameInstance.update(),
-            (interpolation: number) => gameInstance.render(interpolation),
-            (fps: number) => (gameInstance as any).currentFps = fps,
-        );
-
-        // 6. Instantiate the Game class with all its dependencies
-        gameInstance = new Game(
+        // 6. Start the game loop
+        new Game(
             canvas,
             inputManager,
             lonk,
             mapTile,
-            renderer,
-            gameLoop
-        );
-
-        // 7. Start the game loop
-        gameInstance.start();
+            renderer
+        ).start();
 
     } catch (error) {
         console.error("Failed to initialize or start the game:", error);
-        // Optionally display an error message to the user on the canvas or a dedicated UI element
     }
 });
