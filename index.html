@@ -260,12 +260,9 @@
 
                 // Collision detection
                 const noCollisionX = !this.checkCollision(newX, this.y, backgroundMap, solidTiles);
-                if (noCollisionX) {
-                    this.x = newX;
-                }
-
                 const noCollisionY = !this.checkCollision(this.x, newY, backgroundMap, solidTiles);
-                if (noCollisionY) {
+                if (noCollisionX && noCollisionY) {
+                    this.x = newX;
                     this.y = newY;
                 }
 
@@ -315,12 +312,12 @@
             }
 
 
-          /**
-             * Draws Lonk on the canvas with interpolation.
-             * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
-             * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
-             * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
-             */
+            /**
+               * Draws Lonk on the canvas with interpolation.
+               * @param {CanvasRenderingContext2D} ctx - The 2D rendering context of the canvas.
+               * @param {HTMLImageElement} lonkSpritesheet - The spritesheet image for Lonk.
+               * @param {number} interpolation - The interpolation factor (0 to 1) for smooth rendering.
+               */
             draw(ctx, lonkSpritesheet, interpolation) {
                 let sourceX = 0;
                 let flipHorizontal = false;
