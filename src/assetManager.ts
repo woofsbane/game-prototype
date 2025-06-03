@@ -1,17 +1,25 @@
 /**
+ * Defines the available game assets.
+ */
+export enum GameAsset {
+    BACKGROUND = 'background',
+    LONK = 'lonk',
+}
+
+/**
  * Manages the loading and retrieval of game assets like images.
  */
 export class AssetManager {
-    private assets: { [key: string]: HTMLImageElement } = {};
+    private assets: { [key in GameAsset]?: HTMLImageElement } = {};
     private loadPromises: Promise<void>[] = [];
 
     /**
      * Loads an image asset.
-     * @param name - The name to associate with the loaded image.
+     * @param name - The name (from GameAsset enum) to associate with the loaded image.
      * @param path - The URL path to the image file.
      * @returns The Image object being loaded.
      */
-    public loadImage(name: string, path: string): HTMLImageElement {
+    public loadImage(name: GameAsset, path: string): HTMLImageElement {
         const img = new Image();
         img.src = path;
         const promise = new Promise<void>((resolve, reject) => {
@@ -29,10 +37,10 @@ export class AssetManager {
 
     /**
      * Retrieves a loaded asset by its name.
-     * @param name - The name of the asset to retrieve.
+     * @param name - The name (from GameAsset enum) of the asset to retrieve.
      * @returns The loaded image asset, or undefined if not found.
      */
-    public getAsset(name: string): HTMLImageElement | undefined {
+    public getAsset(name: GameAsset): HTMLImageElement | undefined {
         return this.assets[name];
     }
 

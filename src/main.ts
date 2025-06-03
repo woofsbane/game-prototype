@@ -1,5 +1,5 @@
 import { Game } from "./game";
-import { AssetManager } from "./assetManager";
+import { AssetManager, GameAsset } from "./assetManager";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
 import { MapTile } from "./mapTile";
@@ -14,13 +14,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // 2. Initialize AssetManager and load assets
         const assetManager = new AssetManager();
-        assetManager.loadImage('background', 'tilesets/background.png');
-        assetManager.loadImage('lonk', 'tilesets/lonk.png');
-        await assetManager.waitForLoad(); // Wait for all assets to load
+        assetManager.loadImage(GameAsset.BACKGROUND, 'tilesets/background.png');
+        assetManager.loadImage(GameAsset.LONK, 'tilesets/lonk.png');
+        await assetManager.waitForLoad();
 
         // 3. Retrieve loaded assets
-        const backgroundAsset = assetManager.getAsset('background');
-        const lonkAsset = assetManager.getAsset('lonk');
+        const backgroundAsset = assetManager.getAsset(GameAsset.BACKGROUND);
+        const lonkAsset = assetManager.getAsset(GameAsset.LONK);
 
         if (!backgroundAsset || !lonkAsset) {
             throw new Error("Required assets (background or lonk) not loaded after loading process.");
