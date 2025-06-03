@@ -36,7 +36,8 @@
             LONK_COLLISION_OFFSET_X: 4,
             LONK_COLLISION_OFFSET_Y: 6,
             LONK_COLLISION_WIDTH_REDUCTION: 8, // 4 from each side (16 - 8 = 8 actual width)
-            LONK_COLLISION_HEIGHT_REDUCTION: 8 // 6 from top + 2 from bottom (16 - 8 = 8 actual height)
+            LONK_COLLISION_HEIGHT_REDUCTION: 8, // 6 from top + 2 from bottom (16 - 8 = 8 actual height)
+            GAME_BAR_HEIGHT: 1, // Offset for the game bar
         });
 
         /**
@@ -348,7 +349,7 @@
 
                 // Apply scaling for drawing and ensure integer pixel positions
                 const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;
-                const scaledY = interpolatedY * GameConfig.CANVAS_SCALE;
+                const scaledY = (interpolatedY + GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT) * GameConfig.CANVAS_SCALE;
                 const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
                 const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
 
@@ -434,7 +435,7 @@
                             this.backgroundSpritesheet,
                             sx, sy,
                             GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
-                            x * scaledSpriteWidth, y * scaledSpriteHeight,
+                            x * scaledSpriteWidth, (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight,
                             scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
                         );
                     }
@@ -574,7 +575,6 @@
                  * @type {number[][]}
                  */
                 this.background = [
-                    [159, 159, 159, 159, 159, 159, 159, 159, 159, 159],
                     [44, 45, 29, 28, 29, 28, 29, 35, 35, 28],
                     [28, 29, 35, 7, 8, 9, 0, 2, 35, 12],
                     [1, 2, 35, 23, 24, 25, 32, 18, 35, 28],
@@ -586,8 +586,8 @@
                 ];
 
                 // Scale the canvas resolution based on map dimensions and GameConfig.CANVAS_SCALE
-                this.canvas.width = this.background[0].length * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-                this.canvas.height = this.background.length * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
+                this.canvas.width = 10 * GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
+                this.canvas.height = 9 * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
 
 
                 /** @type {AssetManager} */
@@ -658,7 +658,7 @@
                 // Pass unscaled canvas dimensions to Lonk's update for consistent game logic
                 this.lonk.update(this.inputManager, this.background, this.solidTiles,
                     this.canvas.width / GameConfig.CANVAS_SCALE,
-                    this.canvas.height / GameConfig.CANVAS_SCALE);
+                    this.canvas.height / GameConfig.CANVAS_SCALE - GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT);
                 // Add more game update logic here
             }
 
