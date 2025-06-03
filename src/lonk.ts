@@ -25,13 +25,14 @@ export class Lonk {
     public frame: 0 | 1;
     private frameDelay: number;
     private frameCounter: number;
+    private spritesheet: HTMLImageElement;
 
     /**
      * Creates an instance of Lonk.
      * @param x - The initial X coordinate of Lonk.
      * @param y - The initial Y coordinate of Lonk.
      */
-    constructor(x: number, y: number) {
+    constructor(x: number, y: number, spritesheet: HTMLImageElement) {
         this.x = x;
         this.y = y;
         this.prevX = x;
@@ -41,6 +42,7 @@ export class Lonk {
         this.frame = 0;
         this.frameDelay = 3;
         this.frameCounter = 0;
+        this.spritesheet = spritesheet;
     }
 
     /**
@@ -145,7 +147,7 @@ export class Lonk {
      * @param lonkSpritesheet - The spritesheet image for Lonk.
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    public draw(ctx: CanvasRenderingContext2D, lonkSpritesheet: HTMLImageElement, interpolation: number): void {
+    public draw(ctx: CanvasRenderingContext2D, interpolation: number): void {
         let sourceX = 0;
         let flipHorizontal = false;
 
@@ -183,7 +185,7 @@ export class Lonk {
             ctx.translate(scaledX + scaledSpriteWidth / 2, scaledY + scaledSpriteHeight / 2);
             ctx.scale(-1, 1);
             ctx.drawImage(
-                lonkSpritesheet,
+                this.spritesheet,
                 sourceX, 0,
                 GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
                 -scaledSpriteWidth / 2, -scaledSpriteHeight / 2,
@@ -191,7 +193,7 @@ export class Lonk {
             );
         } else {
             ctx.drawImage(
-                lonkSpritesheet,
+                this.spritesheet,
                 sourceX, 0,
                 GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
                 scaledX, scaledY, // Destination (scaled)

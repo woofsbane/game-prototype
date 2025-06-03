@@ -27,12 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     ];
 
     const inputManager = new InputManager();
-    const lonk = new Lonk(75, 75); // Initial position for Lonk
+    const lonk = new Lonk(75, 75, lonkAsset);
     const mapTile = new MapTile(initialMapData, solidTiles, backgroundAsset);
-    const renderer = new Renderer(canvas, lonkAsset);
+    const renderer = new Renderer(canvas);
 
     new Game(
-        canvas,
         inputManager,
         lonk,
         mapTile,

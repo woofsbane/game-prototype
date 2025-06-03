@@ -1,4 +1,3 @@
-import { GameConfig } from "./config";
 import { GameLoop } from "./gameLoop";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
@@ -9,7 +8,6 @@ import { Renderer } from "./renderer";
  * The main Game class, orchestrating all game components.
  */
 export class Game {
-    private canvas: HTMLCanvasElement;
     private inputManager: InputManager;
     private mapTile: MapTile;
     private lonk: Lonk;
@@ -19,22 +17,17 @@ export class Game {
 
     /**
      * Creates an instance of Game.
-     * @param canvas The HTMLCanvasElement to render the game on.
-     * @param assetManager The AssetManager instance with loaded assets.
      * @param inputManager The InputManager instance for handling user input.
      * @param lonk The Lonk instance representing the player character.
      * @param mapTile The MapTile instance representing the game map.
      * @param renderer The Renderer instance for drawing game elements.
-     * @param gameLoop The GameLoop instance for managing the game's update and render cycles.
      */
     constructor(
-        canvas: HTMLCanvasElement,
         inputManager: InputManager,
         lonk: Lonk,
         mapTile: MapTile,
         renderer: Renderer,
     ) {
-        this.canvas = canvas;
         this.inputManager = inputManager;
         this.lonk = lonk;
         this.mapTile = mapTile;

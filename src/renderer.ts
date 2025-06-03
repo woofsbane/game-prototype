@@ -8,21 +8,18 @@ import { MapTile } from "./mapTile";
 export class Renderer {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
-    private lonkSpritesheet: HTMLImageElement;
 
     /**
      * Creates an instance of Renderer.
      * @param canvas - The HTML canvas element to draw on.
-     * @param lonkSpritesheet - The spritesheet for Lonk.
      */
-    constructor(canvas: HTMLCanvasElement, lonkSpritesheet: HTMLImageElement) {
+    constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             throw new Error("Could not get 2D rendering context for canvas.");
         }
         this.ctx = ctx;
-        this.lonkSpritesheet = lonkSpritesheet;
 
         this.ctx.imageSmoothingEnabled = false;
     }
@@ -48,7 +45,7 @@ export class Renderer {
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
     public drawLonk(lonk: Lonk, interpolation: number): void {
-        lonk.draw(this.ctx, this.lonkSpritesheet, interpolation);
+        lonk.draw(this.ctx, interpolation);
     }
 
     /**
