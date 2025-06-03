@@ -9,6 +9,10 @@ import { FpsDisplay } from "./fpsDisplay";
 
 document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        throw new Error("Could not get 2D rendering context for canvas.");
+    }
 
     const assetManager = new AssetManager();
     const backgroundAsset = assetManager.loadImage(GameAsset.BACKGROUND, 'tilesets/background.png');
@@ -31,7 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const lonk = new Lonk(75, 75, lonkAsset);
     const fpsDisplay = new FpsDisplay();
     const mapTile = new MapTile(initialMapData, solidTiles, backgroundAsset);
-    const renderer = new Renderer(canvas);
+    const renderer = new Renderer(ctx, canvas.width, canvas.height);
 
     new Game(
         inputManager,

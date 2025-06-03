@@ -1,12 +1,12 @@
 import { FpsDisplay } from "./fpsDisplay";
-import { GameLoop } from "./gameLoop";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
 import { MapTile } from "./mapTile";
 import { Renderer } from "./renderer";
+import { GameConfig } from "./config";
 
 /**
- * The main Game class, orchestrating all game components.
+ * The main Game class, orchestrating all game components and managing the game loop.
  */
 export class Game {
     private inputManager: InputManager;
@@ -14,7 +14,14 @@ export class Game {
     private lonk: Lonk;
     private fpsDisplay: FpsDisplay;
     private renderer: Renderer;
-    private gameLoop: GameLoop;
+
+    private animationFrameId: number | null = null;
+    private lastTime: DOMHighResTimeStamp = 0;
+    private delta: number = 0;
+
+    private frameCount: number = 0;
+    private lastFpsUpdateTime: DOMHighResTimeStamp = 0;
+    private currentFps: number = 0;
 
     /**
      * Creates an instance of Game.
@@ -36,26 +43,56 @@ export class Game {
         this.mapTile = mapTile;
         this.fpsDisplay = fpsDisplay;
         this.renderer = renderer;
-
-        this.gameLoop = new GameLoop(
-            this.update.bind(this),
-            this.render.bind(this),
-            this.fpsDisplay.setFps.bind(this.fpsDisplay),
-        );
     }
 
     /**
      * Initializes and starts the game loop.
      */
     public start(): void {
-        this.gameLoop.start();
+        this.lastTime = performance.now();
+        this.lastFpsUpdateTime = performance.now();
+        this.delta = 0;
+        this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
     }
 
     /**
      * Stops the game loop.
      */
     public stop(): void {
-        this.gameLoop.stop();
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+    }
+
+    private loop(now: DOMHighResTimeStamp): void {
+        const elapsed = now - this.lastTime;
+        this.lastTime = now;
+        this.delta += Math.min(elapsed, GameConfig.MAX_DELTA_TIME);
+
+        let updatesCount = 0;
+        while (this.delta >= GameConfig.TIMESTEP && updatesCount < GameConfig.MAX_UPDATES_PER_FRAME) {
+            this.update();
+            this.delta -= GameConfig.TIMESTEP;
+            updatesCount++;
+        }
+
+        if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTEP) {
+            this.delta = 0;
+        }
+
+        const interpolation = this.delta / GameConfig.TIMESTEP;
+        this.render(interpolation);
+
+        this.frameCount++;
+        if (now - this.lastFpsUpdateTime >= GameConfig.FPS_UPDATE_INTERVAL_MS) {
+            this.currentFps = this.frameCount;
+            this.frameCount = 0;
+            this.lastFpsUpdateTime = now;
+            this.fpsDisplay.setFps(this.currentFps);
+        }
+
+        this.animationFrameId = requestAnimationFrame(this.loop.bind(this));
     }
 
     private update(): void {
