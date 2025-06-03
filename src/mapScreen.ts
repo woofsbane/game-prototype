@@ -1,10 +1,10 @@
 import { GameConfig } from "./config";
-import type { IDrawable } from "./renderer";
+import { SpriteRenderer } from "./spriteRenderer";
 
 /**
  * Represents the game's background map and handles tile-related logic.
  */
-export class MapScreen implements IDrawable {
+export class MapScreen {
     private offsetX: number = 0;
     private offsetY: number = 0;
 
@@ -14,7 +14,7 @@ export class MapScreen implements IDrawable {
      * @param solidTiles - An array of sprite IDs that are considered solid.
      * @param spritesheet - The spritesheet image for background tiles.
      */
-    constructor(private tileset: number[][], private solidTiles: number[], private spritesheet: HTMLImageElement) { }
+    constructor(private tileset: number[][], private solidTiles: number[]) { }
 
     /**
      * Checks if a tile at the given coordinates is solid.
@@ -39,28 +39,15 @@ export class MapScreen implements IDrawable {
      * Draws the background tiles on the canvas.
      * @param ctx - The 2D rendering context of the canvas.
      */
-    public draw(ctx: CanvasRenderingContext2D): void {
-        const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-        const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
-
+    public draw(spriteRenderer: SpriteRenderer): void {
         for (let y = 0; y < this.tileset.length; y++) {
             for (let x = 0; x < this.tileset[y].length; x++) {
-                const { sx, sy } = this.getSpriteSourceCoords(this.tileset[y][x]);
-                ctx.drawImage(
-                    this.spritesheet,
-                    sx, sy,
-                    GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
-                    x * scaledSpriteWidth + this.offsetX * GameConfig.CANVAS_SCALE,
-                    (y + GameConfig.GAME_BAR_HEIGHT) * scaledSpriteHeight + this.offsetY * GameConfig.CANVAS_SCALE,
-                    scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
+                spriteRenderer.draw(
+                    this.tileset[y][x],
+                    x * GameConfig.SPRITE_WIDTH + this.offsetX,
+                    (y + GameConfig.GAME_BAR_HEIGHT) * GameConfig.SPRITE_HEIGHT + this.offsetY // TODO: Inherit offset from parent.
                 );
             }
         }
-    }
-
-    private getSpriteSourceCoords(spriteId: number): { sx: number; sy: number } {
-        const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.spritesheet.width;
-        const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.spritesheet.width) * GameConfig.SPRITE_HEIGHT;
-        return { sx, sy };
     }
 }

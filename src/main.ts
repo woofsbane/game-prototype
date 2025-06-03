@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         [1, 17, 18, 115, 35, 115, 32, 34, 115, 35],
         [33, 33, 34, 35, 115, 35, 115, 115, 115, 35],
         [13, 12, 13, 12, 13, 115, 115, 115, 115, 35],
-    ], solidTiles, backgroundAsset);
+    ], solidTiles);
     const map10 = new MapScreen([
         [44, 45, 29, 28, 29, 28, 29, 35, 35, 28],
         [28, 29, 35, 7, 8, 9, 0, 2, 35, 12],
@@ -50,7 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         [1, 17, 18, 115, 35, 115, 32, 34, 115, 12],
         [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
         [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
-    ], solidTiles, backgroundAsset);
+    ], solidTiles);
     const map01 = new MapScreen([
         [44, 45, 29, 28, 29, 28, 29, 35, 35, 28],
         [28, 29, 35, 7, 8, 9, 0, 2, 35, 12],
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         [1, 17, 18, 115, 35, 115, 32, 34, 115, 12],
         [33, 33, 34, 35, 115, 35, 115, 115, 115, 28],
         [13, 12, 13, 12, 13, 115, 115, 115, 115, 12],
-    ], solidTiles, backgroundAsset);
+    ], solidTiles);
     const map11 = new MapScreen([
         [29, 28, 29, 28, 29, 115, 115, 115, 115, 28],
         [64, 64, 64, 64, 66, 115, 115, 115, 115, 12],
@@ -70,14 +70,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         [147, 147, 147, 147, 98, 64, 54, 100, 100, 53],
         [147, 147, 129, 147, 80, 84, 81, 100, 100, 69],
         [129, 129, 147, 129, 147, 147, 147, 147, 147, 147],
-    ], solidTiles, backgroundAsset);
+    ], solidTiles);
 
     const worldMap = new WorldMap(
         [
             [map00, map10],
             [map01, map11]
         ],
-        1, 1);
+        1, 1,
+        new SpriteRenderer(ctx, backgroundAsset)
+    );
 
     const inputManager = new InputManager();
     const lonk = new Lonk(90, 10, new SpriteRenderer(ctx, lonkAsset));

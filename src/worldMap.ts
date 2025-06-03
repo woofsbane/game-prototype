@@ -2,6 +2,7 @@ import { Directions, GameConfig } from "./config";
 import type { Lonk } from "./lonk";
 import { MapScreen } from "./mapScreen";
 import type { IDrawable } from "./renderer";
+import type { SpriteRenderer } from "./spriteRenderer";
 
 export class WorldMap implements IDrawable {
     private transitionProgress: number = 0;
@@ -9,7 +10,7 @@ export class WorldMap implements IDrawable {
     private newY = 0;
     private static TRANSITION_STEP = 6;
 
-    constructor(private screens: MapScreen[][], private x: number, private y: number) { }
+    constructor(private screens: MapScreen[][], private x: number, private y: number, private spriteRenderer: SpriteRenderer) { }
 
     public getScreen(): MapScreen {
         return this.screens[this.y][this.x];
@@ -79,15 +80,10 @@ export class WorldMap implements IDrawable {
         }
     }
 
-
-    /**
-     * Draws the correct map.
-     * @param ctx - The 2D rendering context of the canvas.
-     */
-    public draw(ctx: CanvasRenderingContext2D): void {
-        this.getScreen().draw(ctx);
+    public draw(): void {
+        this.getScreen().draw(this.spriteRenderer);
         if (this.transitionProgress > 0) {
-            this.getNewScreen().draw(ctx);
+            this.getNewScreen().draw(this.spriteRenderer);
         }
     }
 }
