@@ -3,6 +3,16 @@ import { InputManager } from "./inputManager";
 import { MapTile } from "./mapTile";
 
 /**
+ * Defines the sprite sheet frame numbers for Lonk's animations.
+ */
+const enum LonkSprite {
+    DOWN = 0,
+    UP = 1,
+    LEFT_FRAME1 = 2,
+    LEFT_FRAME2 = 3,
+}
+
+/**
  * Represents the main player character, Lonk.
  */
 export class Lonk {
@@ -141,22 +151,18 @@ export class Lonk {
 
         switch (this.direction) {
             case Directions.DOWN:
-                sourceX = 0 * GameConfig.SPRITE_WIDTH;
-                if (this.frame === 1) {
-                    flipHorizontal = true;
-                }
+                sourceX = LonkSprite.DOWN * GameConfig.SPRITE_WIDTH;
+                flipHorizontal = this.frame === 1;
                 break;
             case Directions.UP:
-                sourceX = 1 * GameConfig.SPRITE_WIDTH;
-                if (this.frame === 1) {
-                    flipHorizontal = true;
-                }
+                sourceX = LonkSprite.UP * GameConfig.SPRITE_WIDTH;
+                flipHorizontal = this.frame === 1;
                 break;
             case Directions.LEFT:
-                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH;
+                sourceX = (this.frame + LonkSprite.LEFT_FRAME1) * GameConfig.SPRITE_WIDTH;
                 break;
             case Directions.RIGHT:
-                sourceX = (2 + this.frame) * GameConfig.SPRITE_WIDTH;
+                sourceX = (this.frame + LonkSprite.LEFT_FRAME1) * GameConfig.SPRITE_WIDTH;
                 flipHorizontal = true;
                 break;
         }
@@ -170,7 +176,6 @@ export class Lonk {
         const scaledY = (interpolatedY + GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT) * GameConfig.CANVAS_SCALE;
         const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
         const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
-
 
         ctx.save();
         if (flipHorizontal) {
