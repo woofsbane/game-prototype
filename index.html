@@ -31,6 +31,13 @@
             CANVAS_SCALE: 6 // Scale up the canvas by 4x
         };
 
+        const Directions = {
+            UP: 'up',
+            DOWN: 'down',
+            LEFT: 'left',
+            RIGHT: 'right'
+        };
+
         /**
          * Manages the loading and retrieval of game assets like images.
          */
@@ -112,10 +119,10 @@
                  * @type {Object.<string, string>}
                  */
                 this.actionMap = {
-                    'up': 'w',
-                    'down': 's',
-                    'left': 'a',
-                    'right': 'd',
+                    [Directions.UP]: 'w',
+                    [Directions.DOWN]: 's',
+                    [Directions.LEFT]: 'a',
+                    [Directions.RIGHT]: 'd',
                 };
                 this.addEventListeners();
             }
@@ -168,7 +175,7 @@
                  * The current direction Lonk is facing.
                  * @type {'up' | 'down' | 'left' | 'right'}
                  */
-                this.direction = 'down';
+                this.direction = Directions.DOWN;
                 /**
                  * The current animation frame for Lonk.
                  * @type {0 | 1}
@@ -203,28 +210,28 @@
                 let moveY = 0;
 
                 // Use the abstract actions for movement
-                if (inputManager.isActionActive('up')) {
+                if (inputManager.isActionActive(Directions.UP)) {
                     moveY -= this.speed;
                 }
-                if (inputManager.isActionActive('down')) {
+                if (inputManager.isActionActive(Directions.DOWN)) {
                     moveY += this.speed;
                 }
-                if (inputManager.isActionActive('left')) {
+                if (inputManager.isActionActive(Directions.LEFT)) {
                     moveX -= this.speed;
                 }
-                if (inputManager.isActionActive('right')) {
+                if (inputManager.isActionActive(Directions.RIGHT)) {
                     moveX += this.speed;
                 }
 
                 // Set direction based on priority: Left/Right takes precedence over Up/Down
-                if (inputManager.isActionActive('left')) {
-                    this.direction = 'left';
-                } else if (inputManager.isActionActive('right')) {
-                    this.direction = 'right';
-                } else if (inputManager.isActionActive('up')) {
-                    this.direction = 'up';
-                } else if (inputManager.isActionActive('down')) {
-                    this.direction = 'down';
+                if (inputManager.isActionActive(Directions.LEFT)) {
+                    this.direction = Directions.LEFT;
+                } else if (inputManager.isActionActive(Directions.RIGHT)) {
+                    this.direction = Directions.RIGHT;
+                } else if (inputManager.isActionActive(Directions.UP)) {
+                    this.direction = Directions.UP;
+                } else if (inputManager.isActionActive(Directions.DOWN)) {
+                    this.direction = Directions.DOWN;
                 }
 
 
@@ -308,22 +315,22 @@
                 let flipHorizontal = false;
 
                 switch (this.direction) {
-                    case 'down':
+                    case Directions.DOWN:
                         lonkSx = 0 * GameConfig.SPRITE_WIDTH;
                         if (this.frame === 1) {
                             flipHorizontal = true; // For down-facing, frame 1 is a mirrored version
                         }
                         break;
-                    case 'up':
+                    case Directions.UP:
                         lonkSx = 1 * GameConfig.SPRITE_WIDTH;
                         if (this.frame === 1) {
                             flipHorizontal = true; // For up-facing, frame 1 is a mirrored version
                         }
                         break;
-                    case 'left':
+                    case Directions.LEFT:
                         lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for left
                         break;
-                    case 'right':
+                    case Directions.RIGHT:
                         lonkSx = (2 + this.frame) * GameConfig.SPRITE_WIDTH; // Frames 2 and 3 are for right, but flipped
                         flipHorizontal = true;
                         break;
@@ -525,7 +532,7 @@
 
                 // If we hit the max updates, reset delta to prevent accumulating too much time
                 // This can happen if the game lags significantly
-                if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTATES) { // Typo fixed: TIMESTATES -> TIMESTEP
+                if (updatesCount === GameConfig.MAX_UPDATES_PER_FRAME && this.delta >= GameConfig.TIMESTEP) {
                     this.delta = 0;
                 }
 
