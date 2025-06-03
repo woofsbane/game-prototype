@@ -7,6 +7,7 @@ import { Renderer } from "./renderer";
 import "./style.css";
 import { FpsDisplay } from "./fpsDisplay";
 import { WorldMap } from "./worldMap";
+import { SpriteRenderer } from "./spriteRenderer";
 
 document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -79,7 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         1, 1);
 
     const inputManager = new InputManager();
-    const lonk = new Lonk(90, 10, lonkAsset);
+    const lonk = new Lonk(90, 10, new SpriteRenderer(ctx, lonkAsset));
     const fpsDisplay = new FpsDisplay();
     const renderer = new Renderer(ctx, canvas.width, canvas.height);
 

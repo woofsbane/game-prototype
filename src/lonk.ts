@@ -2,6 +2,7 @@ import { Directions, GameConfig } from "./config";
 import { InputManager } from "./inputManager";
 import { MapScreen } from "./mapScreen";
 import type { IDrawable } from "./renderer";
+import type { SpriteRenderer } from "./spriteRenderer";
 
 /**
  * Defines the sprite sheet frame numbers for Lonk's animations.
@@ -21,14 +22,11 @@ export interface LonkUpdateResult {
  * Represents the main player character, Lonk.
  */
 export class Lonk implements IDrawable {
-    public x: number;
-    public y: number;
     private speed: number;
     public direction: Directions;
     public frame: 0 | 1;
     private frameDelay: number;
     private frameCounter: number;
-    private spritesheet: HTMLImageElement;
 
     private offsetX: number = 0;
     private offsetY: number = 0;
@@ -38,15 +36,12 @@ export class Lonk implements IDrawable {
      * @param x - The initial X coordinate of Lonk.
      * @param y - The initial Y coordinate of Lonk.
      */
-    constructor(x: number, y: number, spritesheet: HTMLImageElement) {
-        this.x = x;
-        this.y = y;
+    constructor(private x: number, private y: number, private spriteRenderer: SpriteRenderer) {
         this.speed = 2;
         this.direction = Directions.DOWN;
         this.frame = 0;
         this.frameDelay = 3;
         this.frameCounter = 0;
-        this.spritesheet = spritesheet;
     }
 
     /**
@@ -201,59 +196,33 @@ export class Lonk implements IDrawable {
      * @param lonkSpritesheet - The spritesheet image for Lonk.
      * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
      */
-    public draw(ctx: CanvasRenderingContext2D): void {
-        let sourceX = 0;
+    public draw(): void {
+        let spriteId = 0;
         let flipHorizontal = false;
 
         switch (this.direction) {
             case Directions.DOWN:
-                sourceX = LonkSprite.DOWN * GameConfig.SPRITE_WIDTH;
+                spriteId = LonkSprite.DOWN;
                 flipHorizontal = this.frame === 1;
                 break;
             case Directions.UP:
-                sourceX = LonkSprite.UP * GameConfig.SPRITE_WIDTH;
+                spriteId = LonkSprite.UP;
                 flipHorizontal = this.frame === 1;
                 break;
             case Directions.LEFT:
-                sourceX = (this.frame + LonkSprite.LEFT_FRAME1) * GameConfig.SPRITE_WIDTH;
+                spriteId = (this.frame + LonkSprite.LEFT_FRAME1);
                 break;
             case Directions.RIGHT:
-                sourceX = (this.frame + LonkSprite.LEFT_FRAME1) * GameConfig.SPRITE_WIDTH;
+                spriteId = (this.frame + LonkSprite.LEFT_FRAME1);
                 flipHorizontal = true;
                 break;
         }
 
-        // Calculate interpolated position (unscaled) and round to the nearest integer
-        const interpolatedX = this.x + this.offsetX;
-        const interpolatedY = this.y + this.offsetY;
-
-        // Apply scaling for drawing and ensure integer pixel positions
-        const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;
-        const scaledY = (interpolatedY + GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT) * GameConfig.CANVAS_SCALE;
-        const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
-        const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
-
-        ctx.save();
-        if (flipHorizontal) {
-            // Translate to the center of the scaled sprite, scale horizontally, then draw
-            ctx.translate(scaledX + scaledSpriteWidth / 2, scaledY + scaledSpriteHeight / 2);
-            ctx.scale(-1, 1);
-            ctx.drawImage(
-                this.spritesheet,
-                sourceX, 0,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
-                -scaledSpriteWidth / 2, -scaledSpriteHeight / 2,
-                scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
-            );
-        } else {
-            ctx.drawImage(
-                this.spritesheet,
-                sourceX, 0,
-                GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
-                scaledX, scaledY, // Destination (scaled)
-                scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
-            );
-        }
-        ctx.restore();
+        this.spriteRenderer.draw(
+            spriteId,
+            this.x + this.offsetX,
+            this.y + this.offsetY + GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT, // TODO: Inherit offset from parent.
+            flipHorizontal
+        );
     }
 }
