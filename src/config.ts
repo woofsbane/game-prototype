@@ -27,7 +27,7 @@ export const GameConfig: GlobalConfig = Object.freeze({
     FPS_UPDATE_INTERVAL_MS: 1000,
     MAP_WIDTH_PX: 160,
     MAP_HEIGHT_PX: 128,
-    CANVAS_SCALE: 6,
+    CANVAS_SCALE: 4,
     LONK_COLLISION_OFFSET_X: 4,
     LONK_COLLISION_OFFSET_Y: 6,
     LONK_COLLISION_WIDTH_REDUCTION: 8, // 4 from each side (16 - 8 = 8 actual width)

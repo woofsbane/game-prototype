@@ -8,9 +8,12 @@ import "./style.css";
 import { FpsDisplay } from "./fpsDisplay";
 import { WorldMap } from "./worldMap";
 import { SpriteRenderer } from "./spriteRenderer";
+import { GameConfig } from "./config";
 
 document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
+    canvas.width = 160 * GameConfig.CANVAS_SCALE;
+    canvas.height = 144 * GameConfig.CANVAS_SCALE;
     const ctx = canvas.getContext('2d');
     if (!ctx) {
         throw new Error("Could not get 2D rendering context for canvas.");
