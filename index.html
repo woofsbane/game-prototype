@@ -221,17 +221,15 @@
                 let moveX = 0;
                 let moveY = 0;
 
-                // Use the abstract actions for movement
                 if (inputManager.isActionActive(Directions.UP)) {
                     moveY -= this.speed;
-                }
-                if (inputManager.isActionActive(Directions.DOWN)) {
+                } else if (inputManager.isActionActive(Directions.DOWN)) {
                     moveY += this.speed;
                 }
+                
                 if (inputManager.isActionActive(Directions.LEFT)) {
                     moveX -= this.speed;
-                }
-                if (inputManager.isActionActive(Directions.RIGHT)) {
+                } else if (inputManager.isActionActive(Directions.RIGHT)) {
                     moveX += this.speed;
                 }
 
