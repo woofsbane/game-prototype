@@ -324,8 +324,8 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 const interpolatedY = this.prevY + (this.y - this.prevY) * interpolation;
 
                 // Apply scaling for drawing and ensure integer pixel positions
-                const scaledX = Math.floor(interpolatedX * GameConfig.CANVAS_SCALE);
-                const scaledY = Math.floor(interpolatedY * GameConfig.CANVAS_SCALE);
+                const scaledX = interpolatedX * GameConfig.CANVAS_SCALE;
+                const scaledY = interpolatedY * GameConfig.CANVAS_SCALE;
                 const scaledSpriteWidth = GameConfig.SPRITE_WIDTH * GameConfig.CANVAS_SCALE;
                 const scaledSpriteHeight = GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE;
 
@@ -333,7 +333,6 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 ctx.save();
                 if (flipHorizontal) {
                     // Translate to the center of the scaled sprite, scale horizontally, then draw
-                    // The translate coordinates need to be floor-ed as well for consistency
                     ctx.translate(scaledX + scaledSpriteWidth / 2, scaledY + scaledSpriteHeight / 2);
                     ctx.scale(-1, 1);
                     ctx.drawImage(
@@ -348,7 +347,7 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                         lonkSpritesheet,
                         lonkSx, lonkSy,
                         GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source (unscaled)
-                        scaledX, scaledY, // Destination (scaled) - now floored
+                        scaledX, scaledY, // Destination (scaled)
                         scaledSpriteWidth, scaledSpriteHeight // Destination (scaled)
                     );
                 }
@@ -376,22 +375,7 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                 /** @type {HTMLImageElement} */
                 this.lonkSpritesheet = lonkSpritesheet;
 
-                // FIX: Disable image smoothing for crisp pixel art.
-                // For Chrome, 'pixelated' is best. For broader support, 'false'.
                 this.ctx.imageSmoothingEnabled = false;
-                if (this.ctx.imageSmoothingEnabled === false) { // Check if it was successfully set to false
-                    // For some browsers, 'pixelated' quality might be an option.
-                    // This is an experimental feature and might not be supported everywhere.
-                    // If supported, it might give better results than 'false' for some pixel art games.
-                    // For now, sticking with `false` for maximum compatibility and sharpness.
-                    // @ts-ignore
-                    if (this.ctx.imageSmoothingQuality) { // Check if property exists before setting
-                        // @ts-ignore
-                        this.ctx.imageSmoothingQuality = 'low'; // Or 'medium' or 'high' depending on preference
-                        // However, for pixel art, 'low' or 'pixelated' is often desired.
-                        // 'pixelated' is ideal but not widely supported yet.
-                    }
-                }
             }
 
             /**
@@ -407,7 +391,6 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
              * @returns {{sx: number, sy: number}} An object containing the source X (sx) and source Y (sy) coordinates.
              */
             getSpriteSourceCoords(spriteId) {
-                // Assuming spritesheets are laid out horizontally
                 const sx = (spriteId * GameConfig.SPRITE_WIDTH) % this.backgroundSpritesheet.width;
                 const sy = Math.floor((spriteId * GameConfig.SPRITE_WIDTH) / this.backgroundSpritesheet.width) * GameConfig.SPRITE_HEIGHT;
                 return { sx, sy };
@@ -428,8 +411,7 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
                             this.backgroundSpritesheet,
                             sx, sy,
                             GameConfig.SPRITE_WIDTH, GameConfig.SPRITE_HEIGHT, // Source width and height (original sprite size)
-                            // FIX: Floor destination coordinates for crisp pixel alignment
-                            Math.floor(x * scaledSpriteWidth), Math.floor(y * scaledSpriteHeight),
+                            x * scaledSpriteWidth, y * scaledSpriteHeight,
                             scaledSpriteWidth, scaledSpriteHeight // Destination width and height (scaled)
                         );
                     }
@@ -452,12 +434,11 @@ update(inputManager, backgroundMap, solidTiles, canvasWidth, canvasHeight) {
             drawFPS(fps) {
                 this.ctx.fillStyle = 'red';
                 // Adjust font size and position for scaled canvas
-                this.ctx.font = `${10 * GameConfig.CANVAS_SCALE}px Arial`;
+                this.ctx.font = `${5 * GameConfig.CANVAS_SCALE}px Arial`;
                 this.ctx.textAlign = 'right';
-                // FIX: Floor FPS text position as well for consistency
                 this.ctx.fillText(`FPS: ${fps}`,
-                    Math.floor(this.canvas.width - (10 * GameConfig.CANVAS_SCALE)),
-                    Math.floor(10 * GameConfig.CANVAS_SCALE)
+                    this.canvas.width - (5 * GameConfig.CANVAS_SCALE),
+                    5 * GameConfig.CANVAS_SCALE
                 );
             }
         }
