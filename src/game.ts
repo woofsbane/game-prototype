@@ -1,3 +1,4 @@
+import { FpsDisplay } from "./fpsDisplay";
 import { GameLoop } from "./gameLoop";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
@@ -11,7 +12,7 @@ export class Game {
     private inputManager: InputManager;
     private mapTile: MapTile;
     private lonk: Lonk;
-    private currentFps: number = 0;
+    private fpsDisplay: FpsDisplay;
     private renderer: Renderer;
     private gameLoop: GameLoop;
 
@@ -20,23 +21,26 @@ export class Game {
      * @param inputManager The InputManager instance for handling user input.
      * @param lonk The Lonk instance representing the player character.
      * @param mapTile The MapTile instance representing the game map.
+     * @param fpsDisplay The FpsDisplay instance representing the fps display.
      * @param renderer The Renderer instance for drawing game elements.
      */
     constructor(
         inputManager: InputManager,
         lonk: Lonk,
         mapTile: MapTile,
+        fpsDisplay: FpsDisplay,
         renderer: Renderer,
     ) {
         this.inputManager = inputManager;
         this.lonk = lonk;
         this.mapTile = mapTile;
+        this.fpsDisplay = fpsDisplay;
         this.renderer = renderer;
 
         this.gameLoop = new GameLoop(
             this.update.bind(this),
             this.render.bind(this),
-            (fps: number) => this.currentFps = fps,
+            this.fpsDisplay.setFps.bind(this.fpsDisplay),
         );
     }
 
@@ -59,9 +63,6 @@ export class Game {
     }
 
     private render(interpolation: number): void {
-        this.renderer.clear();
-        this.renderer.drawBackground(this.mapTile);
-        this.renderer.drawLonk(this.lonk, interpolation);
-        this.renderer.drawFPS(this.currentFps);
+        this.renderer.draw([this.mapTile, this.lonk, this.fpsDisplay], interpolation);
     }
 }

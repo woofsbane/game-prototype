@@ -5,6 +5,7 @@ import { Lonk } from "./lonk";
 import { MapTile } from "./mapTile";
 import { Renderer } from "./renderer";
 import "./style.css";
+import { FpsDisplay } from "./fpsDisplay";
 
 document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -28,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const inputManager = new InputManager();
     const lonk = new Lonk(75, 75, lonkAsset);
+    const fpsDisplay = new FpsDisplay();
     const mapTile = new MapTile(initialMapData, solidTiles, backgroundAsset);
     const renderer = new Renderer(canvas);
 
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         inputManager,
         lonk,
         mapTile,
-        renderer
+        fpsDisplay,
+        renderer,
     ).start();
 });

@@ -1,9 +1,10 @@
 import { GameConfig } from "./config";
+import type { IDrawable } from "./renderer";
 
 /**
  * Represents the game's background map and handles tile-related logic.
  */
-export class MapTile {
+export class MapTile implements IDrawable {
     private mapData: number[][];
     private solidTiles: number[];
     private spritesheet: HTMLImageElement;

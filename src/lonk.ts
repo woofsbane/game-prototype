@@ -1,6 +1,7 @@
 import { Directions, GameConfig } from "./config";
 import { InputManager } from "./inputManager";
 import { MapTile } from "./mapTile";
+import type { IDrawable } from "./renderer";
 
 /**
  * Defines the sprite sheet frame numbers for Lonk's animations.
@@ -15,7 +16,7 @@ const enum LonkSprite {
 /**
  * Represents the main player character, Lonk.
  */
-export class Lonk {
+export class Lonk implements IDrawable {
     public x: number;
     public y: number;
     public prevX: number;
