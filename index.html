@@ -13,7 +13,6 @@
     <script>
         /**
          * @typedef {Object} GameConfig
-         * @property {number} TICKS_PER_SECOND - The target number of game logic updates per second.
          * @property {number} TIMESTEP - The fixed time step (in milliseconds) for game logic updates.
          * @property {number} MAX_DELTA_TIME - The maximum allowed delta time (in milliseconds) to prevent "spiral of death" on performance dips.
          * @property {number} MAX_UPDATES_PER_FRAME - The maximum number of game logic updates that can occur in a single frame.
@@ -23,7 +22,6 @@
          * @property {number} CANVAS_SCALE - The scaling factor for the canvas resolution.
          */
         const GameConfig = {
-            TICKS_PER_SECOND: 30,
             TIMESTEP: 1000 / 30,
             MAX_DELTA_TIME: 250,
             MAX_UPDATES_PER_FRAME: 5,
