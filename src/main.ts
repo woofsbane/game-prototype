@@ -2,7 +2,7 @@ import { Game } from "./game";
 import { AssetManager, GameAsset } from "./assetManager";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
-import { MapTile } from "./mapTile";
+import { MapScreen } from "./mapScreen";
 import { Renderer } from "./renderer";
 import "./style.css";
 import { FpsDisplay } from "./fpsDisplay";
@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inputManager = new InputManager();
     const lonk = new Lonk(75, 75, lonkAsset);
     const fpsDisplay = new FpsDisplay();
-    const mapTile = new MapTile(initialMapData, solidTiles, backgroundAsset);
+    const mapTile = new MapScreen(initialMapData, solidTiles, backgroundAsset);
     const renderer = new Renderer(ctx, canvas.width, canvas.height);
 
     new Game(

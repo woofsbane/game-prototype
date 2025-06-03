@@ -1,6 +1,6 @@
 import { Directions, GameConfig } from "./config";
 import { InputManager } from "./inputManager";
-import { MapTile } from "./mapTile";
+import { MapScreen } from "./mapScreen";
 import type { IDrawable } from "./renderer";
 
 /**
@@ -53,7 +53,7 @@ export class Lonk implements IDrawable {
      * @param canvasWidth - The width of the game canvas (unscaled).
      * @param canvasHeight - The height of the game canvas (unscaled).
      */
-    public update(inputManager: InputManager, mapTile: MapTile): void {
+    public update(inputManager: InputManager, mapTile: MapScreen): void {
         this.prevX = this.x;
         this.prevY = this.y;
 
@@ -119,7 +119,7 @@ export class Lonk implements IDrawable {
      * @param mapTile - The MapTile instance for collision checking.
      * @returns True if a collision is detected, false otherwise.
      */
-    private willCollideWithMap(potentialX: number, potentialY: number, mapTile: MapTile): boolean {
+    private willCollideWithMap(potentialX: number, potentialY: number, mapTile: MapScreen): boolean {
         // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
         const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
         const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;

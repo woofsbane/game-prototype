@@ -1,7 +1,7 @@
 import { FpsDisplay } from "./fpsDisplay";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
-import { MapTile } from "./mapTile";
+import { MapScreen } from "./mapScreen";
 import { Renderer } from "./renderer";
 import { GameConfig } from "./config";
 
@@ -10,7 +10,7 @@ import { GameConfig } from "./config";
  */
 export class Game {
     private inputManager: InputManager;
-    private mapTile: MapTile;
+    private mapTile: MapScreen;
     private lonk: Lonk;
     private fpsDisplay: FpsDisplay;
     private renderer: Renderer;
@@ -34,7 +34,7 @@ export class Game {
     constructor(
         inputManager: InputManager,
         lonk: Lonk,
-        mapTile: MapTile,
+        mapTile: MapScreen,
         fpsDisplay: FpsDisplay,
         renderer: Renderer,
     ) {
