@@ -1,14 +1,14 @@
-import { Game } from "./game";
 import { AssetManager, GameAsset } from "./assetManager";
+import { GameConfig } from "./config";
+import { FpsDisplay } from "./fpsDisplay";
+import { Game } from "./game";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
 import { MapScreen } from "./mapScreen";
-import { Renderer } from "./renderer";
-import "./style.css";
-import { FpsDisplay } from "./fpsDisplay";
-import { WorldMap } from "./worldMap";
 import { SpriteRenderer } from "./spriteRenderer";
-import { GameConfig } from "./config";
+import "./style.css";
+import { Viewport, ViewportMode } from "./viewport";
+import { WorldMap } from "./worldMap";
 
 document.addEventListener('DOMContentLoaded', async () => {
     const canvas = document.getElementById('gameCanvas') as HTMLCanvasElement;
@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!ctx) {
         throw new Error("Could not get 2D rendering context for canvas.");
     }
+    ctx.imageSmoothingEnabled = false;
 
     const assetManager = new AssetManager();
     const backgroundAsset = assetManager.loadImage(GameAsset.BACKGROUND, 'tilesets/background.png');
@@ -80,20 +81,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             [map00, map10],
             [map01, map11]
         ],
-        1, 1,
         new SpriteRenderer(ctx, backgroundAsset)
     );
 
     const inputManager = new InputManager();
-    const lonk = new Lonk(90, 10, new SpriteRenderer(ctx, lonkAsset));
+    const lonk = new Lonk(200, 60, new SpriteRenderer(ctx, lonkAsset));
     const fpsDisplay = new FpsDisplay();
-    const renderer = new Renderer(ctx, canvas.width, canvas.height);
+    const viewport = new Viewport(ViewportMode.TILED);
 
     new Game(
         inputManager,
         lonk,
         worldMap,
         fpsDisplay,
-        renderer,
+        viewport,
+        ctx,
     ).start();
 });

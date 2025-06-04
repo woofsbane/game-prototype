@@ -1,89 +1,59 @@
-import { Directions, GameConfig } from "./config";
-import type { Lonk } from "./lonk";
+import { GameConfig } from "./config";
 import { MapScreen } from "./mapScreen";
-import type { IDrawable } from "./renderer";
 import type { SpriteRenderer } from "./spriteRenderer";
+import type { Viewport } from "./viewport";
 
-export class WorldMap implements IDrawable {
-    private transitionProgress: number = 0;
-    private newX = 0;
-    private newY = 0;
-    private static TRANSITION_STEP = 6;
+export class WorldMap {
+    constructor(private screens: MapScreen[][], private spriteRenderer: SpriteRenderer) { }
 
-    constructor(private screens: MapScreen[][], private x: number, private y: number, private spriteRenderer: SpriteRenderer) { }
-
-    public getScreen(): MapScreen {
-        return this.screens[this.y][this.x];
-    }
-
-    private getNewScreen(): MapScreen {
-        return this.screens[this.newY][this.newX];
-    }
-
-    public isTransitioning(): boolean {
-        return this.transitionProgress > 0;
-    }
-
-    public changeScreens(direction: Directions | undefined): boolean {
-        switch (direction) {
-            case Directions.UP:
-                this.newY = Math.max(0, this.y - 1);
-                this.newX = this.x;
-                this.transitionProgress += WorldMap.TRANSITION_STEP;
-                return true;
-            case Directions.DOWN:
-                this.newY = Math.min(this.y + 1, this.screens[0].length - 1);
-                this.newX = this.x;
-                this.transitionProgress += WorldMap.TRANSITION_STEP;
-                return true;
-            case Directions.LEFT:
-                this.newX = Math.max(0, this.x - 1);
-                this.newY = this.y;
-                this.transitionProgress += WorldMap.TRANSITION_STEP;
-                return true;
-            case Directions.RIGHT:
-                this.newX = Math.min(this.x + 1, this.screens.length - 1);
-                this.newY = this.y;
-                this.transitionProgress += WorldMap.TRANSITION_STEP;
-                return true;
-        }
-
+    /**
+         * Checks for collision with solid background tiles at a given potential position.
+         * @param potentialX - The potential X coordinate of Lonk.
+         * @param potentialY - The potential Y coordinate of Lonk.
+         * @returns True if a collision is detected, false otherwise.
+         */
+    public hasCollision(potentialX: number, potentialY: number): boolean {
         return false;
+
+        // // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
+        // const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
+        // const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
+        // const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
+        // const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
+
+        // // Determine the range of tiles Lonk is currently overlapping or about to overlap
+        // const startTileX = Math.floor(lonkLeft / GameConfig.SPRITE_WIDTH);
+        // const endTileX = Math.floor(lonkRight / GameConfig.SPRITE_WIDTH);
+        // const startTileY = Math.floor(lonkTop / GameConfig.SPRITE_HEIGHT);
+        // const endTileY = Math.floor(lonkBottom / GameConfig.SPRITE_HEIGHT);
+
+        // for (let row = startTileY; row <= endTileY; row++) {
+        //     for (let col = startTileX; col <= endTileX; col++) {
+        //         // TODO: Get appropriate maptile dynamically
+        //         if (mapTile.isTileSolid(col, row)) {
+        //             return true;
+        //         }
+        //     }
+        // }
+        // return false;
     }
 
-    public update(lonk: Lonk): void {
-        if (this.transitionProgress >= 100) {
-            this.getScreen().setProgress(0, 0);
-            this.getNewScreen().setProgress(0, 0);
-            lonk.setProgress(0, 0);
-            this.x = this.newX;
-            this.y = this.newY;
-            this.transitionProgress = 0;
-        } else if (this.transitionProgress > 0) {
-            this.transitionProgress += WorldMap.TRANSITION_STEP;
-            this.transitionProgress = Math.min(this.transitionProgress, 100);
 
-            this.getScreen().setProgress(
-                ((this.transitionProgress * (this.x - this.newX)) / 100 * GameConfig.MAP_WIDTH_PX),
-                ((this.transitionProgress * (this.y - this.newY)) / 100 * GameConfig.MAP_HEIGHT_PX),
-            );
+    public draw(viewport: Viewport): void {
+        const { minX, minY, maxX, maxY } = viewport.getBoundingBox();
+        const minScreenX = Math.max(Math.floor(minX / GameConfig.MAP_WIDTH_PX), 0);
+        const minScreenY = Math.max(Math.floor(minY / GameConfig.MAP_HEIGHT_PX), 0);
+        const maxScreenX = Math.min(Math.ceil(maxX / GameConfig.MAP_WIDTH_PX) - 1, this.screens[0].length - 1);
+        const maxScreenY = Math.min(Math.ceil(maxY / GameConfig.MAP_HEIGHT_PX) - 1, this.screens.length - 1);
 
-            this.getNewScreen().setProgress(
-                ((this.transitionProgress - 100) * (this.x - this.newX)) / 100 * GameConfig.MAP_WIDTH_PX,
-                ((this.transitionProgress - 100) * (this.y - this.newY)) / 100 * GameConfig.MAP_HEIGHT_PX,
-            );
-
-            lonk.setProgress(
-                (this.transitionProgress * (this.x - this.newX)) / 100 * (GameConfig.MAP_WIDTH_PX - GameConfig.SPRITE_WIDTH),
-                (this.transitionProgress * (this.y - this.newY)) / 100 * (GameConfig.MAP_HEIGHT_PX - GameConfig.SPRITE_HEIGHT),
-            );
-        }
-    }
-
-    public draw(): void {
-        this.getScreen().draw(this.spriteRenderer);
-        if (this.transitionProgress > 0) {
-            this.getNewScreen().draw(this.spriteRenderer);
+        for (let x = minScreenX; x <= maxScreenX; x++) {
+            for (let y = minScreenY; y <= maxScreenY; y++) {
+                const deltaX = (x * GameConfig.MAP_WIDTH_PX - minX) * GameConfig.CANVAS_SCALE;
+                const deltaY = (y * GameConfig.MAP_HEIGHT_PX - minY) * GameConfig.CANVAS_SCALE;
+                this.spriteRenderer.translate(deltaX, deltaY);
+                this.screens[y][x].draw(this.spriteRenderer);
+                this.spriteRenderer.restore();
+            }
         }
     }
 }

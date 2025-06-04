@@ -35,7 +35,16 @@ export class SpriteRenderer {
                 SpriteRenderer.SPRITE_SCALE_X, SpriteRenderer.SPRITE_SCALE_Y
             );
         }
-        
+
+        this.ctx.restore();
+    }
+
+    public translate(x: number, y: number) {
+        this.ctx.save();
+        this.ctx.translate(x, y);
+    }
+
+    public restore() {
         this.ctx.restore();
     }
 }

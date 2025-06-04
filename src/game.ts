@@ -1,8 +1,8 @@
+import { GameConfig } from "./config";
 import { FpsDisplay } from "./fpsDisplay";
 import { InputManager } from "./inputManager";
 import { Lonk } from "./lonk";
-import { Renderer } from "./renderer";
-import { GameConfig } from "./config";
+import type { Viewport } from "./viewport";
 import { WorldMap } from "./worldMap";
 
 /**
@@ -30,7 +30,8 @@ export class Game {
         private lonk: Lonk,
         private worldMap: WorldMap,
         private fpsDisplay: FpsDisplay,
-        private renderer: Renderer,
+        private viewport: Viewport,
+        private ctx: CanvasRenderingContext2D,
     ) { }
 
     /**
@@ -83,16 +84,37 @@ export class Game {
     }
 
     private update(): void {
-        if (!this.worldMap.isTransitioning()) {
-            const res = this.lonk.update(this.inputManager, this.worldMap.getScreen());
-            
-            this.worldMap.changeScreens(res.transition);
+        if (!this.viewport.isTransitioning()) {
+            this.lonk.update(this.inputManager, this.worldMap);
         }
 
-        this.worldMap.update(this.lonk);
+        this.viewport.update(this.lonk.getPosition());
     }
 
     private render(): void {
-        this.renderer.draw([this.worldMap, this.lonk, this.fpsDisplay]);
+        // Clear screen
+        this.ctx.clearRect(0, 0, 160 * GameConfig.CANVAS_SCALE, 144 * GameConfig.CANVAS_SCALE); // TODO: Abstract this somewhere.
+
+        // Translate to below game bar
+        this.ctx.save();
+        this.ctx.translate(0, GameConfig.GAME_BAR_HEIGHT * GameConfig.SPRITE_HEIGHT * GameConfig.CANVAS_SCALE);
+
+        // Draw world map
+        this.worldMap.draw(this.viewport);
+        
+        // Translate to the current viewport
+        const { minX, minY } = this.viewport.getBoundingBox();
+        this.ctx.save();
+        this.ctx.translate(-minX * GameConfig.CANVAS_SCALE, -minY * GameConfig.CANVAS_SCALE);
+
+        // Draw Lonk
+        this.lonk.draw();
+
+        // Translate back to the global position
+        this.ctx.restore();
+        this.ctx.restore();
+
+        // Draw the FPS display
+        this.fpsDisplay.draw(this.ctx);
     }
 }
