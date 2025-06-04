@@ -1,4 +1,4 @@
-import { Directions } from "./config";
+import { Directions, GameConfig } from "./config";
 import { InputManager } from "./inputManager";
 import type { SpriteRenderer } from "./spriteRenderer";
 import type { WorldMap } from "./worldMap";
@@ -41,9 +41,23 @@ export class Lonk {
     }
 
     /**
+     * Calculates Lonk's collision boundaries at a given potential position.
+     * @param potentialX - The potential X coordinate of Lonk.
+     * @param potentialY - The potential Y coordinate of Lonk.
+     * @returns An object containing the left, top, right, and bottom collision boundaries.
+     */
+    private getCollisionBounds(potentialX: number, potentialY: number): { lonkLeft: number, lonkTop: number, lonkRight: number, lonkBottom: number } {
+        const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
+        const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
+        const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
+        const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
+        return { lonkLeft, lonkTop, lonkRight, lonkBottom };
+    }
+
+    /**
      * Updates Lonk's position and animation based on input.
      * @param inputManager - The input manager instance.
-     * @param mapTile - The MapTile instance for collision checking.
+     * @param worldMap - The WorldMap instance for collision checking.
      */
     public update(inputManager: InputManager, worldMap: WorldMap): void {
         let moveX = 0;
@@ -82,13 +96,16 @@ export class Lonk {
         const newX = this.x + moveX;
         const newY = this.y + moveY;
 
-        // Collision detection
-        const noCollisionX = !worldMap.hasCollision(newX, this.y);
+        // Collision detection for X movement
+        const { lonkLeft: xLonkLeft, lonkTop: xLonkTop, lonkRight: xLonkRight, lonkBottom: xLonkBottom } = this.getCollisionBounds(newX, this.y);
+        const noCollisionX = !worldMap.hasCollision(xLonkLeft, xLonkTop, xLonkRight, xLonkBottom);
         if (noCollisionX) {
             this.x = newX;
         }
 
-        const noCollisionY = !worldMap.hasCollision(this.x, newY);
+        // Collision detection for Y movement
+        const { lonkLeft: yLonkLeft, lonkTop: yLonkTop, lonkRight: yLonkRight, lonkBottom: yLonkBottom } = this.getCollisionBounds(this.x, newY);
+        const noCollisionY = !worldMap.hasCollision(yLonkLeft, yLonkTop, yLonkRight, yLonkBottom);
         if (noCollisionY) {
             this.y = newY;
         }
@@ -104,10 +121,7 @@ export class Lonk {
     }
 
     /**
-     * Draws Lonk on the canvas with interpolation.
-     * @param ctx - The 2D rendering context of the canvas.
-     * @param lonkSpritesheet - The spritesheet image for Lonk.
-     * @param interpolation - The interpolation factor (0 to 1) for smooth rendering.
+     * Draws Lonk on the canvas.
      */
     public draw(): void {
         let spriteId = 0;

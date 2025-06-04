@@ -7,18 +7,14 @@ export class WorldMap {
     constructor(private screens: MapScreen[][], private spriteRenderer: SpriteRenderer) { }
 
     /**
-     * Checks for collision with solid background tiles at a given potential position.
-     * @param potentialX - The potential X coordinate of Lonk.
-     * @param potentialY - The potential Y coordinate of Lonk.
+     * Checks for collision with solid background tiles at a given potential position and collision boundaries.
+     * @param lonkLeft - The left boundary of Lonk's collision box.
+     * @param lonkTop - The top boundary of Lonk's collision box.
+     * @param lonkRight - The right boundary of Lonk's collision box.
+     * @param lonkBottom - The bottom boundary of Lonk's collision box.
      * @returns True if a collision is detected, false otherwise.
      */
-    public hasCollision(potentialX: number, potentialY: number): boolean {
-        // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
-        const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
-        const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
-        const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
-        const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
-
+    public hasCollision(lonkLeft: number, lonkTop: number, lonkRight: number, lonkBottom: number): boolean {
         // Determine the range of screens Lonk's collision box potentially overlaps
         const startScreenX = Math.floor(lonkLeft / GameConfig.MAP_WIDTH_PX);
         const endScreenX = Math.floor(lonkRight / GameConfig.MAP_WIDTH_PX);
