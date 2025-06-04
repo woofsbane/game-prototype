@@ -7,37 +7,61 @@ export class WorldMap {
     constructor(private screens: MapScreen[][], private spriteRenderer: SpriteRenderer) { }
 
     /**
-         * Checks for collision with solid background tiles at a given potential position.
-         * @param potentialX - The potential X coordinate of Lonk.
-         * @param potentialY - The potential Y coordinate of Lonk.
-         * @returns True if a collision is detected, false otherwise.
-         */
+     * Checks for collision with solid background tiles at a given potential position.
+     * @param potentialX - The potential X coordinate of Lonk.
+     * @param potentialY - The potential Y coordinate of Lonk.
+     * @returns True if a collision is detected, false otherwise.
+     */
     public hasCollision(potentialX: number, potentialY: number): boolean {
+        // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
+        const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
+        const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
+        const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
+        const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
+
+        // Determine the range of screens Lonk's collision box potentially overlaps
+        const startScreenX = Math.floor(lonkLeft / GameConfig.MAP_WIDTH_PX);
+        const endScreenX = Math.floor(lonkRight / GameConfig.MAP_WIDTH_PX);
+        const startScreenY = Math.floor(lonkTop / GameConfig.MAP_HEIGHT_PX);
+        const endScreenY = Math.floor(lonkBottom / GameConfig.MAP_HEIGHT_PX);
+
+        // Iterate through all potentially overlapping screens
+        for (let sY = startScreenY; sY <= endScreenY; sY++) {
+            for (let sX = startScreenX; sX <= endScreenX; sX++) {
+                // Check if screen coordinates are within valid bounds of the world map
+                if (sY < 0 || sY >= this.screens.length || sX < 0 || sX >= (this.screens[0]?.length || 0)) {
+                    // If Lonk is trying to move into an area outside the defined world map, consider it a collision.
+                    return true;
+                }
+
+                const currentMapScreen = this.screens[sY][sX];
+
+                // Calculate tile coordinates relative to the current screen's top-left corner
+                const relativeLonkLeft = lonkLeft - (sX * GameConfig.MAP_WIDTH_PX);
+                const relativeLonkTop = lonkTop - (sY * GameConfig.MAP_HEIGHT_PX);
+                const relativeLonkRight = lonkRight - (sX * GameConfig.MAP_WIDTH_PX);
+                const relativeLonkBottom = lonkBottom - (sY * GameConfig.MAP_HEIGHT_PX);
+
+                // Determine the range of tiles Lonk is currently overlapping or about to overlap within THIS screen
+                const startTileX = Math.floor(relativeLonkLeft / GameConfig.SPRITE_WIDTH);
+                const endTileX = Math.floor(relativeLonkRight / GameConfig.SPRITE_WIDTH);
+                const startTileY = Math.floor(relativeLonkTop / GameConfig.SPRITE_HEIGHT);
+                const endTileY = Math.floor(relativeLonkBottom / GameConfig.SPRITE_HEIGHT);
+
+                // Iterate through the tiles within this specific map screen
+                for (let tileY = startTileY; tileY <= endTileY; tileY++) {
+                    for (let tileX = startTileX; tileX <= endTileX; tileX++) {
+                        // Check for collision within the current map screen.
+                        // isTileSolid will handle bounds checking for tiles within its own screen.
+                        if (currentMapScreen.isTileSolid(tileX, tileY)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
         return false;
-
-        // // Collision box adjusted for sprite (e.g., Lonk is 16x16 but collision is smaller)
-        // const lonkLeft = potentialX + GameConfig.LONK_COLLISION_OFFSET_X;
-        // const lonkTop = potentialY + GameConfig.LONK_COLLISION_OFFSET_Y;
-        // const lonkRight = potentialX + GameConfig.SPRITE_WIDTH - GameConfig.LONK_COLLISION_OFFSET_X;
-        // const lonkBottom = potentialY + GameConfig.SPRITE_HEIGHT - (GameConfig.LONK_COLLISION_HEIGHT_REDUCTION - GameConfig.LONK_COLLISION_OFFSET_Y);
-
-        // // Determine the range of tiles Lonk is currently overlapping or about to overlap
-        // const startTileX = Math.floor(lonkLeft / GameConfig.SPRITE_WIDTH);
-        // const endTileX = Math.floor(lonkRight / GameConfig.SPRITE_WIDTH);
-        // const startTileY = Math.floor(lonkTop / GameConfig.SPRITE_HEIGHT);
-        // const endTileY = Math.floor(lonkBottom / GameConfig.SPRITE_HEIGHT);
-
-        // for (let row = startTileY; row <= endTileY; row++) {
-        //     for (let col = startTileX; col <= endTileX; col++) {
-        //         // TODO: Get appropriate maptile dynamically
-        //         if (mapTile.isTileSolid(col, row)) {
-        //             return true;
-        //         }
-        //     }
-        // }
-        // return false;
     }
-
 
     public draw(viewport: Viewport): void {
         const { minX, minY, maxX, maxY } = viewport.getBoundingBox();
