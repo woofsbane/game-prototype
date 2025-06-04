@@ -53,9 +53,6 @@ export class Viewport {
                 this.progress += Viewport.PROGRESS_STEP;
                 this.nextX = x;
                 this.nextY = y;
-            } else {
-                this.x = x;
-                this.y = y;
             }
         }
     }
