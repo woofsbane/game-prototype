@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inputManager = new InputManager();
     const lonk = new Lonk(200, 60, new SpriteRenderer(ctx, lonkAsset));
     const fpsDisplay = new FpsDisplay();
-    const viewport = new Viewport(ViewportMode.TILED);
+    const viewport = new Viewport(160, 0, ViewportMode.TILED);
 
     new Game(
         inputManager,
